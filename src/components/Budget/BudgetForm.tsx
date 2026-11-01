@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import { useFinance } from '../../contexts/FinanceContext';
+import { useFinance } from '../../contexts/finance';
+import { useNotifications } from '../../contexts/notifications';
+import { usePreferences } from '../../contexts/preferences';
 import type { Budget } from '../../types';
+import Modal from '../UI/Modal';
 
 interface BudgetFormProps {
   onClose: () => void;
@@ -9,59 +11,64 @@ interface BudgetFormProps {
 }
 
 const BudgetForm: React.FC<BudgetFormProps> = ({ onClose, editingBudget }) => {
-  const { addBudget, editBudget, categories, currentMonth } = useFinance();
+  const { addBudget, editBudget, budgets, categories, currentMonth } = useFinance();
+  const { showToast } = useNotifications();
+  const { t } = usePreferences();
   const [categoryId, setCategoryId] = useState(editingBudget?.categoryId || '');
   const [limit, setLimit] = useState(editingBudget ? String(editingBudget.limit) : '');
 
-  const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'both');
+  const taken = new Set(
+    budgets
+      .filter((b) => b.month === currentMonth && b.id !== editingBudget?.id)
+      .map((b) => b.categoryId)
+  );
+  const expenseCategories = categories.filter(
+    (c) => (c.type === 'expense' || c.type === 'both') && !taken.has(c.id)
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedLimit = parseFloat(limit.replace(',', '.'));
+    const parsedLimit = parseFloat(limit);
     if (!categoryId || isNaN(parsedLimit) || parsedLimit <= 0) return;
 
     const budgetData = { categoryId, limit: parsedLimit, month: currentMonth };
     if (editingBudget) editBudget(editingBudget.id, budgetData);
     else addBudget(budgetData);
+    showToast({ kind: 'success', message: t('budget.saved') });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold">{editingBudget ? 'Editar' : 'Nova'} Meta</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Selecionar categoria</option>
+    <Modal title={t(editingBudget ? 'budget.edit' : 'budget.new')} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <label className="block">
+          <span className="field-label">{t('tx.category')}</span>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="input">
+            <option value="">{t('budget.selectCategory')}</option>
             {expenseCategories.map((c) => (
               <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
             ))}
           </select>
+        </label>
+        <label className="block">
+          <span className="field-label">{t('budget.limit')}</span>
           <input
             type="number"
-            placeholder="Limite (R$)"
+            inputMode="decimal"
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
             step="0.01"
             min="0.01"
             required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input"
           />
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Cancelar</button>
-            <button type="submit" className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">{editingBudget ? 'Salvar' : 'Adicionar'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </label>
+        <div className="flex gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('common.cancel')}</button>
+          <button type="submit" className="btn-primary flex-1">{t(editingBudget ? 'common.save' : 'common.add')}</button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

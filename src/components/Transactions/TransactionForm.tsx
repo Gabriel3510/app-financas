@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { useFinance } from '../../contexts/FinanceContext';
+import React, { useState } from 'react';
+import { useFinance } from '../../contexts/finance';
+import { useNotifications } from '../../contexts/notifications';
+import { usePreferences } from '../../contexts/preferences';
 import type { Transaction, TransactionType } from '../../types';
-import { format } from 'date-fns';
+import { getCurrentMonth, getToday } from '../../utils/formatters';
+import Modal from '../UI/Modal';
 
 interface TransactionFormProps {
   onClose: () => void;
@@ -11,38 +13,41 @@ interface TransactionFormProps {
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, editingTransaction }) => {
   const { addTransaction, editTransaction, categories, currentMonth } = useFinance();
+  const { showToast } = useNotifications();
+  const { t } = usePreferences();
   const [type, setType] = useState<TransactionType>(editingTransaction?.type || 'expense');
+  const categoriesFor = (txType: TransactionType) => categories.filter((c) => c.type === txType || c.type === 'both');
+  const filteredCategories = categoriesFor(type);
   const [description, setDescription] = useState(editingTransaction?.description || '');
   const [amount, setAmount] = useState(editingTransaction ? String(editingTransaction.amount) : '');
-  const [categoryId, setCategoryId] = useState(editingTransaction?.categoryId || '');
+  const [categoryId, setCategoryId] = useState(() => {
+    const id = editingTransaction?.categoryId;
+    return filteredCategories.some((c) => c.id === id) ? id! : filteredCategories[0]?.id || '';
+  });
   const [date, setDate] = useState(
-    editingTransaction
-      ? editingTransaction.date.slice(0, 10)
-      : format(new Date(`${currentMonth}-01`), 'yyyy-MM-dd')
+    editingTransaction?.date ?? (currentMonth === getCurrentMonth() ? getToday() : `${currentMonth}-01`)
   );
   const [note, setNote] = useState(editingTransaction?.note || '');
 
-  const filteredCategories = categories.filter((c) => c.type === type || c.type === 'both');
-
-  useEffect(() => {
-    if (!filteredCategories.find((c) => c.id === categoryId)) {
-      setCategoryId(filteredCategories[0]?.id || '');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type]);
+  const changeType = (next: TransactionType) => {
+    setType(next);
+    const options = categoriesFor(next);
+    if (!options.some((c) => c.id === categoryId)) setCategoryId(options[0]?.id || '');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount.replace(',', '.'));
-    if (!description || isNaN(parsedAmount) || parsedAmount <= 0 || !categoryId || !date) return;
+    const parsedAmount = parseFloat(amount);
+    const trimmed = description.trim();
+    if (!trimmed || isNaN(parsedAmount) || parsedAmount <= 0 || !categoryId || !date) return;
 
     const txData = {
-      description,
+      description: trimmed,
       amount: parsedAmount,
       type,
       categoryId,
-      date: new Date(date + 'T12:00:00').toISOString(),
-      note: note || undefined,
+      date,
+      note: note.trim() || undefined,
     };
 
     if (editingTransaction) {
@@ -50,107 +55,79 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, editingTrans
     } else {
       addTransaction(txData);
     }
+    showToast({ kind: 'success', message: t(editingTransaction ? 'tx.updated' : 'tx.added') });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold">{editingTransaction ? 'Editar' : 'Nova'} Transação</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
-            <X size={20} />
-          </button>
+    <Modal title={t(editingTransaction ? 'tx.edit' : 'tx.new')} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        {/* Type toggle */}
+        <div className="flex gap-1 p-1 rounded-xl bg-surface-2">
+          {(['expense', 'income'] as TransactionType[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={type === option}
+              onClick={() => changeType(option)}
+              className={`flex-1 min-h-[40px] rounded-lg text-sm font-medium transition-colors ${
+                type === option
+                  ? option === 'expense' ? 'bg-expense-soft text-expense shadow-sm' : 'bg-income-soft text-income shadow-sm'
+                  : 'text-muted hover:text-ink'
+              }`}
+            >
+              {option === 'expense' ? `↓ ${t('type.expense')}` : `↑ ${t('type.income')}`}
+            </button>
+          ))}
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Type toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-gray-200">
-            {(['expense', 'income'] as TransactionType[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  type === t
-                    ? t === 'expense'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-green-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {t === 'expense' ? '↓ Despesa' : '↑ Receita'}
-              </button>
-            ))}
-          </div>
 
-          <input
-            type="text"
-            placeholder="Descrição"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <label className="block">
+          <span className="field-label">{t('tx.description')}</span>
+          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} required className="input" />
+        </label>
 
-          <input
-            type="number"
-            placeholder="Valor (R$)"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            step="0.01"
-            min="0.01"
-            required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block min-w-0">
+            <span className="field-label">{t('tx.amount')}</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              step="0.01"
+              min="0.01"
+              required
+              className="input"
+            />
+          </label>
+          <label className="block min-w-0">
+            <span className="field-label">{t('tx.date')}</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="input" />
+          </label>
+        </div>
 
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Selecionar categoria</option>
+        <label className="block">
+          <span className="field-label">{t('tx.category')}</span>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="input">
             {filteredCategories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.icon} {c.name}
               </option>
             ))}
           </select>
+        </label>
 
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <label className="block">
+          <span className="field-label">{t('tx.note')}</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="input resize-none" />
+        </label>
 
-          <textarea
-            placeholder="Observação (opcional)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-            >
-              {editingTransaction ? 'Salvar' : 'Adicionar'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('common.cancel')}</button>
+          <button type="submit" className="btn-primary flex-1">{t(editingTransaction ? 'common.save' : 'common.add')}</button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

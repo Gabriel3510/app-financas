@@ -1,4 +1,6 @@
+import { differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek, format, startOfWeek } from 'date-fns';
 import type { Transaction, Budget, Category } from '../types';
+import { shiftMonth } from './formatters';
 
 export interface MonthSummary {
   income: number;
@@ -21,6 +23,15 @@ export interface MonthlyHistory {
   balance: number;
 }
 
+export type BudgetLevel = 'ok' | 'warning' | 'danger' | 'over';
+
+export const getBudgetLevel = (pct: number): BudgetLevel => {
+  if (pct > 100) return 'over';
+  if (pct >= 90) return 'danger';
+  if (pct >= 70) return 'warning';
+  return 'ok';
+};
+
 export const getMonthTransactions = (transactions: Transaction[], month: string): Transaction[] =>
   transactions.filter((t) => t.date.startsWith(month));
 
@@ -36,7 +47,7 @@ export const calculateMonthSummary = (transactions: Transaction[], month: string
 export const getExpensesByCategory = (
   transactions: Transaction[],
   month: string,
-  categories: Category[]
+  getCategory: (id: string) => Category
 ): CategoryExpense[] => {
   const monthExpenses = getMonthTransactions(transactions, month).filter((t) => t.type === 'expense');
   const totalExpenses = monthExpenses.reduce((sum, t) => sum + t.amount, 0);
@@ -47,13 +58,7 @@ export const getExpensesByCategory = (
   return Object.entries(byCategory)
     .map(([categoryId, total]) => ({
       categoryId,
-      category: categories.find((c) => c.id === categoryId) || {
-        id: categoryId,
-        name: 'Outros',
-        icon: '📦',
-        color: '#6B7280',
-        type: 'expense' as const,
-      },
+      category: getCategory(categoryId),
       total,
       percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
     }))
@@ -73,15 +78,65 @@ export const getBudgetUsage = (
 
 export const getMonthlyHistory = (
   transactions: Transaction[],
-  numMonths: number
+  numMonths: number,
+  endMonth: string
 ): MonthlyHistory[] => {
-  const now = new Date();
   const result: MonthlyHistory[] = [];
   for (let i = numMonths - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const month = shiftMonth(endMonth, -i);
     const { income, expenses, balance } = calculateMonthSummary(transactions, month);
     result.push({ month, income, expenses, balance });
   }
   return result;
+};
+
+export interface DayPlan {
+  date: Date;
+  spent: number;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+export interface TodayPlan {
+  dailyLimit: number;
+  income: number;
+  expenses: number;
+  week: DayPlan[];
+}
+
+const toDateKey = (date: Date): string => format(date, 'yyyy-MM-dd');
+
+// Splits what is left of the month's money, after goals, across the remaining days
+export const getTodayPlan = (
+  transactions: Transaction[],
+  reserved: number,
+  expectedIncome: number,
+  now: Date,
+): TodayPlan => {
+  const today = toDateKey(now);
+  const month = today.slice(0, 7);
+  const monthTxs = getMonthTransactions(transactions, month);
+  const sum = (items: Transaction[]) => items.reduce((total, t) => total + t.amount, 0);
+  const expenses = monthTxs.filter((t) => t.type === 'expense');
+
+  const monthIncome = sum(monthTxs.filter((t) => t.type === 'income'));
+  const spentBefore = sum(expenses.filter((t) => t.date < today));
+  const daysLeft = differenceInCalendarDays(endOfMonth(now), now) + 1;
+
+  const week = eachDayOfInterval({ start: startOfWeek(now), end: endOfWeek(now) }).map((date) => {
+    const key = toDateKey(date);
+    return {
+      date,
+      spent: sum(transactions.filter((t) => t.type === 'expense' && t.date === key)),
+      isToday: key === today,
+      isFuture: key > today,
+    };
+  });
+
+  return {
+    dailyLimit: Math.max(0, (Math.max(monthIncome, expectedIncome) - reserved - spentBefore) / daysLeft),
+    income: sum(monthTxs.filter((t) => t.type === 'income' && t.date === today)),
+    expenses: sum(expenses.filter((t) => t.date === today)),
+    week,
+  };
 };

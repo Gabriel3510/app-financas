@@ -1,29 +1,32 @@
 import React from 'react';
+import { usePreferences } from '../contexts/preferences';
+import PageHeader from '../components/Layout/PageHeader';
 import ExpensesPieChart from '../components/Charts/ExpensesPieChart';
 import MonthlyBarChart from '../components/Charts/MonthlyBarChart';
 import BalanceLineChart from '../components/Charts/BalanceLineChart';
 
-const ChartsPage: React.FC = () => (
-  <div className="space-y-6">
-    <div>
-      <h2 className="text-xl font-bold text-gray-800">Gráficos</h2>
-      <p className="text-sm text-gray-500">Análise visual das suas finanças</p>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-4">🍕 Gastos por Categoria</h3>
-        <ExpensesPieChart />
+const ChartsPage: React.FC = () => {
+  const { t } = usePreferences();
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      <PageHeader subtitle={t('page.charts.sub')} />
+      <div data-tour="charts" className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="card p-4 md:p-5 min-w-0">
+          <h2 className="font-semibold mb-4">{t('charts.byCategory')}</h2>
+          <ExpensesPieChart />
+        </div>
+        <div className="card p-4 md:p-5 min-w-0">
+          <h2 className="font-semibold mb-4">{t('charts.history')}</h2>
+          <MonthlyBarChart />
+        </div>
       </div>
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-4">📊 Histórico Mensal (6 meses)</h3>
-        <MonthlyBarChart />
+      <div className="card p-4 md:p-5 min-w-0">
+        <h2 className="font-semibold mb-4">{t('charts.balance')}</h2>
+        <BalanceLineChart />
       </div>
     </div>
-    <div className="bg-white rounded-xl p-5 border border-gray-200">
-      <h3 className="font-semibold text-gray-800 mb-4">📈 Evolução do Saldo</h3>
-      <BalanceLineChart />
-    </div>
-  </div>
-);
+  );
+};
 
 export default ChartsPage;

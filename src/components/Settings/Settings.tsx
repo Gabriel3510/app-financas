@@ -1,176 +1,297 @@
 import React, { useRef, useState } from 'react';
-import { Download, Upload, RefreshCw, Plus, Trash2 } from 'lucide-react';
-import { useFinance } from '../../contexts/FinanceContext';
-import type { AppData, Category } from '../../types';
-import { formatCurrency } from '../../utils/formatters';
+import { Download, Eraser, GraduationCap, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { useFinance } from '../../contexts/finance';
+import { useNotifications } from '../../contexts/notifications';
+import { usePreferences } from '../../contexts/preferences';
+import { CURRENCIES } from '../../types';
+import type { Category, Currency } from '../../types';
+import { normalizeAppData } from '../../utils/appData';
+import ConfirmDialog from '../UI/ConfirmDialog';
+import PreferencePickers from '../UI/PreferencePickers';
 
 const COLORS = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#6B7280'];
 const ICONS = ['📦','🌟','🔧','🏋️','🎯','🎪','🎸','🍕','🍺','💻','🎓','🏆'];
 
-const Settings: React.FC = () => {
-  const {
-    setSalary, currentMonth, getSalaryForMonth,
-    exportData, importData, resetData,
-    customCategories, addCustomCategory, deleteCustomCategory,
-  } = useFinance();
+interface PendingConfirm {
+  title: string;
+  body: string;
+  label?: string;
+  run: () => void;
+}
 
-  const [salaryInput, setSalaryInput] = useState(String(getSalaryForMonth(currentMonth) || ''));
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatIcon, setNewCatIcon] = useState('📦');
-  const [newCatColor, setNewCatColor] = useState('#3B82F6');
-  const [newCatType, setNewCatType] = useState<Category['type']>('expense');
-  const fileRef = useRef<HTMLInputElement>(null);
+const SalaryForm: React.FC<{ initial: string; onSubmit: (value: number) => void }> = ({ initial, onSubmit }) => {
+  const { t } = usePreferences();
+  const [value, setValue] = useState(initial);
 
-  const handleSalary = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = parseFloat(salaryInput.replace(',', '.'));
-    if (!isNaN(val) && val > 0) setSalary(currentMonth, val);
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed) && parsed > 0) onSubmit(parsed);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-3">
+      <input
+        type="number"
+        inputMode="decimal"
+        aria-label={t('settings.salaryPlaceholder')}
+        placeholder={t('settings.salaryPlaceholder')}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        step="0.01"
+        min="0.01"
+        className="input flex-1"
+      />
+      <button type="submit" className="btn-primary">{t('settings.salarySet')}</button>
+    </form>
+  );
+};
+
+interface SettingsProps {
+  onStartTutorial: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
+  const {
+    setSalary, currentMonth, getSalaryForMonth,
+    exportData, importData, resetData, clearData,
+    customCategories, addCustomCategory, deleteCustomCategory,
+  } = useFinance();
+  const { showToast } = useNotifications();
+  const { t, money, month, language, currency, setCurrency, userName, setUserName } = usePreferences();
+  const currencyNames = new Intl.DisplayNames(language, { type: 'currency' });
+
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('📦');
+  const [newCatColor, setNewCatColor] = useState('#F59E0B');
+  const [newCatType, setNewCatType] = useState<Category['type']>('expense');
+  const [pending, setPending] = useState<PendingConfirm | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const currentSalary = getSalaryForMonth(currentMonth);
+
+  const handleSalary = (value: number) => {
+    setSalary(currentMonth, value);
+    showToast({ kind: 'success', message: t('settings.salarySaved') });
+  };
+
+  const handleExport = async () => {
+    try {
+      const result = await exportData();
+      if (result === 'done') showToast({ kind: 'success', message: t('settings.exported') });
+    } catch {
+      showToast({ kind: 'error', message: t('settings.exportError') });
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target?.result as string) as AppData;
-        importData(data);
-      } catch {
-        alert('Arquivo inválido');
-      }
-    };
-    reader.readAsText(file);
     e.target.value = '';
+    if (!file) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      parsed = null;
+    }
+    if (!normalizeAppData(parsed)) {
+      showToast({ kind: 'error', message: t('settings.importError') });
+      return;
+    }
+    setPending({
+      title: t('settings.importTitle'),
+      body: t('settings.importBody'),
+      run: () => {
+        importData(parsed);
+        showToast({ kind: 'success', message: t('settings.imported') });
+      },
+    });
   };
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCatName) return;
-    addCustomCategory({ name: newCatName, icon: newCatIcon, color: newCatColor, type: newCatType });
+    const name = newCatName.trim();
+    if (!name) return;
+    addCustomCategory({ name, icon: newCatIcon, color: newCatColor, type: newCatType });
     setNewCatName('');
   };
 
-  const currentSalary = getSalaryForMonth(currentMonth);
+  const dataAction = 'w-full flex items-center gap-3 p-3 border border-line rounded-xl text-sm font-medium text-left hover:bg-surface-2 transition-colors';
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Salary */}
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-4">💰 Salário do Mês</h3>
-        <p className="text-sm text-gray-500 mb-3">
-          {currentSalary > 0 ? `Salário atual: ${formatCurrency(currentSalary)}` : 'Nenhum salário definido'}
-        </p>
-        <form onSubmit={handleSalary} className="flex gap-3">
-          <input
-            type="number"
-            placeholder="Valor do salário"
-            value={salaryInput}
-            onChange={(e) => setSalaryInput(e.target.value)}
-            step="0.01"
-            min="0.01"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-            Definir
+    <div className="grid gap-4 md:gap-6 lg:grid-cols-2 items-start">
+      <div className="space-y-4 md:space-y-6 min-w-0">
+        {/* Preferences */}
+        <section className="card p-4 md:p-5">
+          <h2 className="font-semibold mb-4">{t('settings.preferences')}</h2>
+          <PreferencePickers />
+          <label className="block mt-4">
+            <span className="field-label">{t('settings.name')}</span>
+            <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} maxLength={30} className="input" />
+          </label>
+          <label className="block mt-4">
+            <span className="field-label">{t('currency.label')}</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className="input">
+              {CURRENCIES.map((code) => <option key={code} value={code}>{code} — {currencyNames.of(code)}</option>)}
+            </select>
+            <span className="block text-xs text-subtle mt-1.5">{t('currency.hint')}</span>
+          </label>
+        </section>
+
+        {/* Salary */}
+        <section className="card p-4 md:p-5">
+          <h2 className="font-semibold mb-1">{t('settings.salary')}</h2>
+          <p className="text-sm text-muted mb-3">
+            {currentSalary > 0
+              ? t('settings.salaryCurrent', { month: month(currentMonth), value: money(currentSalary) })
+              : t('settings.salaryNone', { month: month(currentMonth) })}
+          </p>
+          <SalaryForm key={`${currentMonth}-${currentSalary}`} initial={currentSalary ? String(currentSalary) : ''} onSubmit={handleSalary} />
+        </section>
+
+        {/* Help */}
+        <section className="card p-4 md:p-5">
+          <h2 className="font-semibold mb-4">{t('settings.help')}</h2>
+          <button onClick={onStartTutorial} className={dataAction}>
+            <GraduationCap size={18} className="text-accent" />
+            {t('settings.tutorial')}
           </button>
-        </form>
+        </section>
       </div>
 
-      {/* Custom Categories */}
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-4">🏷️ Categorias Personalizadas</h3>
-        <form onSubmit={handleAddCategory} className="grid grid-cols-2 gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="Nome da categoria"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            required
-            className="col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-gray-600">Ícone:</span>
-            <select value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)} className="border border-gray-200 rounded px-2 py-1 text-sm">
-              {ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-gray-600">Cor:</span>
-            <div className="flex gap-1 flex-wrap">
-              {COLORS.slice(0,5).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setNewCatColor(c)}
-                  className={`w-5 h-5 rounded-full border-2 ${newCatColor === c ? 'border-gray-800' : 'border-transparent'}`}
-                  style={{ backgroundColor: c }}
-                />
+      <div className="space-y-4 md:space-y-6 min-w-0">
+        {/* Custom Categories */}
+        <section className="card p-4 md:p-5">
+          <h2 className="font-semibold mb-4">{t('settings.categories')}</h2>
+          <form onSubmit={handleAddCategory} className="space-y-3 mb-4">
+            <input
+              type="text"
+              aria-label={t('settings.categoryName')}
+              placeholder={t('settings.categoryName')}
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              required
+              className="input"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block min-w-0">
+                <span className="field-label">{t('settings.categoryIcon')}</span>
+                <select value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)} className="input">
+                  {ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+                </select>
+              </label>
+              <label className="block min-w-0">
+                <span className="field-label">{t('settings.categoryType')}</span>
+                <select value={newCatType} onChange={(e) => setNewCatType(e.target.value as Category['type'])} className="input">
+                  <option value="expense">{t('type.expense')}</option>
+                  <option value="income">{t('type.income')}</option>
+                  <option value="both">{t('type.both')}</option>
+                </select>
+              </label>
+            </div>
+            <div>
+              <span className="field-label">{t('settings.categoryColor')}</span>
+              <div className="flex gap-2 flex-wrap">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={c}
+                    aria-pressed={newCatColor === c}
+                    onClick={() => setNewCatColor(c)}
+                    className={`w-8 h-8 rounded-full ring-offset-2 ring-offset-surface ${newCatColor === c ? 'ring-2 ring-ink' : ''}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <button type="submit" className="btn-primary w-full">
+              <Plus size={16} /> {t('settings.categoryAdd')}
+            </button>
+          </form>
+          {customCategories.length === 0 ? (
+            <p className="text-sm text-subtle text-center py-2">{t('settings.categoryNone')}</p>
+          ) : (
+            <div className="space-y-2">
+              {customCategories.map((c) => (
+                <div key={c.id} className="flex items-center gap-3 pl-2 rounded-xl bg-surface-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: c.color + '30' }}>
+                    {c.icon}
+                  </div>
+                  <span className="flex-1 min-w-0 truncate text-sm">{c.name}</span>
+                  <button
+                    onClick={() => setPending({
+                      title: t('settings.categoryDeleteTitle'),
+                      body: t('settings.categoryDeleteBody', { name: c.name }),
+                      label: t('common.delete'),
+                      run: () => deleteCustomCategory(c.id),
+                    })}
+                    aria-label={t('common.delete')}
+                    className="icon-btn hover:text-expense"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Data management */}
+        <section className="card p-4 md:p-5">
+          <h2 className="font-semibold mb-4">{t('settings.data')}</h2>
+          <div className="space-y-3">
+            <button onClick={handleExport} className={dataAction}>
+              <Download size={18} className="text-accent" />
+              {t('settings.export')}
+            </button>
+            <button onClick={() => fileRef.current?.click()} className={dataAction}>
+              <Upload size={18} className="text-income" />
+              {t('settings.import')}
+            </button>
+            <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} />
+            <button
+              onClick={() => setPending({
+                title: t('settings.sampleTitle'),
+                body: t('settings.sampleBody'),
+                run: () => {
+                  resetData();
+                  showToast({ kind: 'success', message: t('settings.done') });
+                },
+              })}
+              className={dataAction}
+            >
+              <RefreshCw size={18} className="text-warning" />
+              {t('settings.sample')}
+            </button>
+            <button
+              onClick={() => setPending({
+                title: t('settings.clearTitle'),
+                body: t('settings.clearBody'),
+                label: t('common.delete'),
+                run: () => {
+                  clearData();
+                  showToast({ kind: 'success', message: t('settings.done') });
+                },
+              })}
+              className={`${dataAction} !border-expense/40 text-expense hover:bg-expense-soft`}
+            >
+              <Eraser size={18} />
+              {t('settings.clear')}
+            </button>
           </div>
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-gray-600">Tipo:</span>
-            <select value={newCatType} onChange={(e) => setNewCatType(e.target.value as Category['type'])} className="border border-gray-200 rounded px-2 py-1 text-sm">
-              <option value="expense">Despesa</option>
-              <option value="income">Receita</option>
-              <option value="both">Ambos</option>
-            </select>
-          </div>
-          <button type="submit" className="col-span-2 flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-            <Plus size={16} /> Adicionar Categoria
-          </button>
-        </form>
-        {customCategories.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-2">Nenhuma categoria personalizada</p>
-        ) : (
-          <div className="space-y-2">
-            {customCategories.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: c.color + '30' }}>
-                  {c.icon}
-                </div>
-                <span className="flex-1 text-sm text-gray-700">{c.name}</span>
-                <button onClick={() => deleteCustomCategory(c.id)} className="p-1 text-gray-400 hover:text-red-600">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        </section>
       </div>
 
-      {/* Data management */}
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-4">💾 Dados</h3>
-        <div className="space-y-3">
-          <button
-            onClick={exportData}
-            className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Download size={18} className="text-blue-500" />
-            Exportar backup (JSON)
-          </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Upload size={18} className="text-green-500" />
-            Importar backup (JSON)
-          </button>
-          <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-          <button
-            onClick={() => {
-              if (window.confirm('Tem certeza? Todos os dados serão resetados para os dados de exemplo.')) {
-                resetData();
-              }
-            }}
-            className="w-full flex items-center gap-3 p-3 border border-red-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <RefreshCw size={18} />
-            Resetar todos os dados
-          </button>
-        </div>
-      </div>
+      {pending && (
+        <ConfirmDialog
+          title={pending.title}
+          body={pending.body}
+          confirmLabel={pending.label}
+          onConfirm={pending.run}
+          onClose={() => setPending(null)}
+        />
+      )}
     </div>
   );
 };

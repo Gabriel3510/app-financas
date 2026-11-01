@@ -1,26 +1,32 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { usePreferences } from '../contexts/preferences';
+import type { TransactionType } from '../types';
+import Fab from '../components/UI/Fab';
+import PageHeader from '../components/Layout/PageHeader';
 import TransactionList from '../components/Transactions/TransactionList';
 import TransactionForm from '../components/Transactions/TransactionForm';
 
-const TransactionsPage: React.FC = () => {
+interface TransactionsPageProps {
+  initialType: TransactionType | 'all';
+}
+
+const TransactionsPage: React.FC<TransactionsPageProps> = ({ initialType }) => {
+  const { t } = usePreferences();
   const [showForm, setShowForm] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Transações</h2>
-          <p className="text-sm text-gray-500">Gerencie receitas e despesas</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} /> Adicionar
-        </button>
-      </div>
-      <TransactionList />
+      <PageHeader
+        subtitle={t('page.transactions.sub')}
+        action={
+          <button onClick={() => setShowForm(true)} className="btn-primary flex-shrink-0 !hidden md:!inline-flex">
+            <Plus size={16} /> {t('tx.newShort')}
+          </button>
+        }
+      />
+      <TransactionList key={initialType} initialType={initialType} />
+      <Fab label={t('tx.new')} onClick={() => setShowForm(true)} />
       {showForm && <TransactionForm onClose={() => setShowForm(false)} />}
     </div>
   );

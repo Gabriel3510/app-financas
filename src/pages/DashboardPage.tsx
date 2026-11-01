@@ -1,41 +1,74 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useFinance } from '../contexts/finance';
+import { usePreferences } from '../contexts/preferences';
+import type { TranslationKey } from '../i18n/translations';
+import type { Page, TransactionType } from '../types';
+import type { GoalsTab } from './BudgetPage';
+import { getCurrentMonth } from '../utils/formatters';
 import SummaryCards from '../components/Dashboard/SummaryCards';
 import BudgetAlerts from '../components/Dashboard/BudgetAlerts';
+import FixedOverview from '../components/Dashboard/FixedOverview';
 import RecentTransactions from '../components/Dashboard/RecentTransactions';
+import TodayOverview from '../components/Dashboard/TodayOverview';
 import TransactionForm from '../components/Transactions/TransactionForm';
 import ExpensesPieChart from '../components/Charts/ExpensesPieChart';
+import Fab from '../components/UI/Fab';
 
 interface DashboardPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: Page) => void;
+  onOpenGoalsTab: (tab: GoalsTab) => void;
+  onOpenTransactions: (type: TransactionType) => void;
 }
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+const greetingKey = (hour: number): TranslationKey => {
+  if (hour < 12) return 'greeting.morning';
+  return hour < 19 ? 'greeting.afternoon' : 'greeting.evening';
+};
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpenGoalsTab, onOpenTransactions }) => {
+  const { t, userName } = usePreferences();
+  const { currentMonth } = useFinance();
+  const [hour] = useState(() => new Date().getHours());
+  const [thisMonth] = useState(getCurrentMonth);
   const [showForm, setShowForm] = useState(false);
+  const isThisMonth = currentMonth === thisMonth;
+  const name = userName.trim();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Visão Geral</h2>
-          <p className="text-sm text-gray-500">Resumo do seu mês financeiro</p>
+    <div className="space-y-4 md:space-y-6">
+      <div className={`bg-hero text-on-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl px-4 md:px-6 pt-3 md:pt-5 flex items-center justify-between gap-3 ${isThisMonth ? 'pb-14' : 'pb-5'}`}>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold">{t(greetingKey(hour))}{name ? `, ${name}` : ''}!</p>
+          <p className="text-sm opacity-80">{t('page.dashboard.sub')}</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} /> Nova Transação
+        <button data-tour="add-transaction" onClick={() => setShowForm(true)} className="btn hidden md:inline-flex bg-on-hero text-hero hover:opacity-90 flex-shrink-0">
+          <Plus size={16} /> {t('tx.new')}
         </button>
       </div>
-      <SummaryCards />
-      <BudgetAlerts />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <h3 className="font-semibold text-gray-800 mb-4">Gastos por Categoria</h3>
+      {isThisMonth && (
+        <div className="!-mt-10 md:!mt-[-3.25rem] md:mx-4 relative">
+          <TodayOverview onOpenTransactions={onOpenTransactions} />
+        </div>
+      )}
+      <SummaryCards
+        onOpenTransactions={onOpenTransactions}
+        onOpenCharts={() => onNavigate('charts')}
+        onOpenGoals={() => onOpenGoalsTab('goals')}
+      />
+      <FixedOverview onOpen={() => onOpenGoalsTab('fixed')} />
+      <BudgetAlerts onOpen={() => onOpenGoalsTab('limits')} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="card p-4 md:p-5 min-w-0">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">{t('charts.byCategory')}</h2>
+            <button onClick={() => onNavigate('charts')} className="text-sm font-medium text-accent hover:underline py-1">{t('recent.viewAll')}</button>
+          </div>
           <ExpensesPieChart />
         </div>
         <RecentTransactions onNavigate={onNavigate} />
       </div>
+      <Fab tour="add-transaction" label={t('tx.new')} onClick={() => setShowForm(true)} />
       {showForm && <TransactionForm onClose={() => setShowForm(false)} />}
     </div>
   );

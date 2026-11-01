@@ -1,34 +1,34 @@
 import React from 'react';
-import { LayoutDashboard, ArrowLeftRight, BarChart2, Target, Settings } from 'lucide-react';
-
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-  { id: 'transactions', label: 'Transações', icon: <ArrowLeftRight size={20} /> },
-  { id: 'charts', label: 'Gráficos', icon: <BarChart2 size={20} /> },
-  { id: 'budget', label: 'Orçamento', icon: <Target size={20} /> },
-  { id: 'settings', label: 'Config', icon: <Settings size={20} /> },
-];
+import { usePreferences } from '../../contexts/preferences';
+import type { Page } from '../../types';
+import { NAV_ITEMS } from './navItems';
 
 interface BottomNavProps {
-  activePage: string;
-  onNavigate: (page: string) => void;
+  activePage: Page;
+  onNavigate: (page: Page) => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate }) => (
-  <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex">
-    {navItems.map((item) => (
-      <button
-        key={item.id}
-        onClick={() => onNavigate(item.id)}
-        className={`flex-1 flex flex-col items-center py-2 gap-1 text-xs font-medium transition-colors ${
-          activePage === item.id ? 'text-blue-600' : 'text-gray-500'
-        }`}
-      >
-        {item.icon}
-        {item.label}
-      </button>
-    ))}
-  </nav>
-);
+const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate }) => {
+  const { t } = usePreferences();
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-line flex pb-safe">
+      {NAV_ITEMS.map(({ id, shortLabel, icon: Icon }) => (
+        <button
+          key={id}
+          data-tour={`nav-${id}`}
+          aria-current={activePage === id ? 'page' : undefined}
+          onClick={() => onNavigate(id)}
+          className={`flex-1 min-w-0 flex flex-col items-center pt-2 pb-1.5 gap-1 text-[11px] font-medium transition-colors ${
+            activePage === id ? 'text-accent' : 'text-subtle'
+          }`}
+        >
+          <Icon size={21} />
+          <span className="max-w-full truncate px-0.5">{t(shortLabel)}</span>
+        </button>
+      ))}
+    </nav>
+  );
+};
 
 export default BottomNav;
