@@ -1,44 +1,42 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useFinance } from '../../contexts/FinanceContext';
-import { formatCurrency, formatMonth } from '../../utils/formatters';
+import { useFinance } from '../../contexts/finance';
+import { usePreferences } from '../../contexts/preferences';
+import ChartTooltip from './ChartTooltip';
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-semibold mb-1 capitalize">{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} className="text-sm" style={{ color: p.color }}>
-            {p.name}: {formatCurrency(p.value)}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+const AXIS_TICK = { fontSize: 12, fill: 'var(--chart-text)' };
 
 const MonthlyBarChart: React.FC = () => {
   const { getMonthlyHistory } = useFinance();
-  const history = getMonthlyHistory(6);
+  const { t, money, compactMoney, month } = usePreferences();
 
-  const data = history.map((h) => ({
-    month: formatMonth(h.month),
-    Receitas: h.income,
-    Despesas: h.expenses,
+  const data = getMonthlyHistory(6).map((h) => ({
+    month: month(h.month).split(' ')[0].replace('.', ''),
+    fullMonth: month(h.month),
+    income: h.income,
+    expenses: h.expenses,
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-        <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 12 }} />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend />
-        <Bar dataKey="Receitas" fill="#10B981" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Despesas" fill="#EF4444" radius={[4, 4, 0, 0]} />
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+        <XAxis dataKey="month" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+        <YAxis width={74} tickFormatter={compactMoney} tick={AXIS_TICK} axisLine={false} tickLine={false} />
+        <Tooltip
+          cursor={{ fill: 'var(--chart-grid)', opacity: 0.4 }}
+          content={({ active, payload }) =>
+            active && payload?.length ? (
+              <ChartTooltip
+                title={(payload[0].payload as { fullMonth: string }).fullMonth}
+                rows={payload.map((p) => ({ label: String(p.name), value: money(Number(p.value)), color: p.color }))}
+              />
+            ) : null
+          }
+        />
+        <Legend wrapperStyle={{ fontSize: 13, color: 'var(--chart-text)' }} />
+        <Bar dataKey="income" name={t('summary.income')} fill="#10B981" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="expenses" name={t('summary.expenses')} fill="#EF4444" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

@@ -1,14 +1,21 @@
 import React from 'react';
+import { usePreferences } from '../contexts/preferences';
+import PageHeader from '../components/Layout/PageHeader';
 import Settings from '../components/Settings/Settings';
 
-const SettingsPage: React.FC = () => (
-  <div className="space-y-4">
-    <div>
-      <h2 className="text-xl font-bold text-gray-800">Configurações</h2>
-      <p className="text-sm text-gray-500">Gerencie preferências e dados</p>
+interface SettingsPageProps {
+  onStartTutorial: () => void;
+}
+
+const SettingsPage: React.FC<SettingsPageProps> = ({ onStartTutorial }) => {
+  const { t } = usePreferences();
+
+  return (
+    <div className="space-y-4">
+      <PageHeader subtitle={t('page.settings.sub')} />
+      <Settings onStartTutorial={onStartTutorial} />
     </div>
-    <Settings />
-  </div>
-);
+  );
+};
 
 export default SettingsPage;

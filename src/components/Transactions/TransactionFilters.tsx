@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import { useFinance } from '../../contexts/FinanceContext';
+import { useFinance } from '../../contexts/finance';
+import { usePreferences } from '../../contexts/preferences';
 import type { TransactionType } from '../../types';
 
 interface TransactionFiltersProps {
@@ -16,35 +17,47 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   search, setSearch, filterType, setFilterType, filterCategory, setFilterCategory,
 }) => {
   const { categories } = useFinance();
+  const { t } = usePreferences();
+  const available = categories.filter((c) => filterType === 'all' || c.type === filterType || c.type === 'both');
+
+  const changeType = (type: TransactionType | 'all') => {
+    setFilterType(type);
+    if (type !== 'all' && !categories.some((c) => c.id === filterCategory && (c.type === type || c.type === 'both'))) {
+      setFilterCategory('');
+    }
+  };
 
   return (
-    <div className="flex flex-wrap gap-3">
-      <div className="relative flex-1 min-w-[180px]">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+    <div data-tour="filters" className="grid grid-cols-2 sm:grid-cols-[1fr_auto_auto] gap-2 sm:gap-3">
+      <div className="relative col-span-2 sm:col-span-1">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
         <input
-          type="text"
-          placeholder="Buscar..."
+          type="search"
+          aria-label={t('tx.search')}
+          placeholder={t('tx.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input pl-9"
         />
       </div>
       <select
+        aria-label={t('tx.allTypes')}
         value={filterType}
-        onChange={(e) => setFilterType(e.target.value as TransactionType | 'all')}
-        className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onChange={(e) => changeType(e.target.value as TransactionType | 'all')}
+        className="input sm:w-auto"
       >
-        <option value="all">Todos os tipos</option>
-        <option value="income">Receitas</option>
-        <option value="expense">Despesas</option>
+        <option value="all">{t('tx.allTypes')}</option>
+        <option value="income">{t('tx.incomes')}</option>
+        <option value="expense">{t('tx.expenses')}</option>
       </select>
       <select
+        aria-label={t('tx.allCategories')}
         value={filterCategory}
         onChange={(e) => setFilterCategory(e.target.value)}
-        className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="input sm:w-auto"
       >
-        <option value="">Todas as categorias</option>
-        {categories.map((c) => (
+        <option value="">{t('tx.allCategories')}</option>
+        {available.map((c) => (
           <option key={c.id} value={c.id}>
             {c.icon} {c.name}
           </option>

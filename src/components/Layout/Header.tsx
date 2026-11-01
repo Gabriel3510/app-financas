@@ -1,53 +1,69 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useFinance } from '../../contexts/FinanceContext';
-import { formatMonth } from '../../utils/formatters';
-import { format, addMonths, parseISO } from 'date-fns';
+import { ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
+import { useFinance } from '../../contexts/finance';
+import { usePreferences } from '../../contexts/preferences';
+import { getCurrentMonth, shiftMonth } from '../../utils/formatters';
+import type { Page } from '../../types';
+import { NAV_ITEMS } from './navItems';
+import Logo from '../UI/Logo';
+import NotificationCenter from './NotificationCenter';
 
-const pageTitles: Record<string, string> = {
-  dashboard: 'Dashboard',
-  transactions: 'Transações',
-  charts: 'Gráficos',
-  budget: 'Orçamento',
-  settings: 'Configurações',
+const MonthNav: React.FC = () => {
+  const { currentMonth, setCurrentMonth } = useFinance();
+  const { t, month } = usePreferences();
+
+  return (
+    <div data-tour="month-nav" className="flex items-center justify-center gap-1">
+      <button onClick={() => setCurrentMonth(shiftMonth(currentMonth, -1))} aria-label={t('month.previous')} className="hero-btn">
+        <ChevronLeft size={20} />
+      </button>
+      <button
+        onClick={() => setCurrentMonth(getCurrentMonth())}
+        title={t('month.today')}
+        className="text-sm font-medium w-28 text-center capitalize py-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10"
+      >
+        {month(currentMonth)}
+      </button>
+      <button onClick={() => setCurrentMonth(shiftMonth(currentMonth, 1))} aria-label={t('month.next')} className="hero-btn">
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  );
 };
 
 interface HeaderProps {
-  activePage: string;
+  activePage: Page;
+  onNavigate: (page: Page) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activePage }) => {
-  const { currentMonth, setCurrentMonth } = useFinance();
-
-  const changeMonth = (delta: number) => {
-    const date = parseISO(`${currentMonth}-01`);
-    const newDate = addMonths(date, delta);
-    setCurrentMonth(format(newDate, 'yyyy-MM'));
-  };
-
-  const showMonthNav = ['dashboard', 'transactions', 'budget'].includes(activePage);
+const Header: React.FC<HeaderProps> = ({ activePage, onNavigate }) => {
+  const { t, isDark, setTheme } = usePreferences();
+  const page = NAV_ITEMS.find((item) => item.id === activePage);
+  const showMonthNav = activePage !== 'settings';
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-gray-800">{pageTitles[activePage] || 'App Finanças'}</h2>
-      {showMonthNav && (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => changeMonth(-1)}
-            className="p-1 rounded hover:bg-gray-100 text-gray-600"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-24 text-center capitalize">
-            {formatMonth(currentMonth)}
-          </span>
-          <button
-            onClick={() => changeMonth(1)}
-            className="p-1 rounded hover:bg-gray-100 text-gray-600"
-          >
-            <ChevronRight size={20} />
-          </button>
+    <header className="sticky top-0 z-30 bg-hero text-on-hero pt-safe">
+      <div className="flex items-center justify-between gap-2 pl-4 pr-2 md:px-6 py-1.5 md:py-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Logo size={30} className="md:hidden flex-shrink-0" />
+          <h1 className="text-lg font-bold truncate">{page ? t(page.label) : t('app.name')}</h1>
         </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {showMonthNav && <div className="hidden sm:block mr-2"><MonthNav /></div>}
+          <button
+            data-tour="theme-toggle"
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            aria-label={t('theme.toggle')}
+            title={t('theme.toggle')}
+            className="hero-btn"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <NotificationCenter onNavigate={onNavigate} />
+        </div>
+      </div>
+      {showMonthNav && (
+        <div className="sm:hidden pb-0.5"><MonthNav /></div>
       )}
     </header>
   );

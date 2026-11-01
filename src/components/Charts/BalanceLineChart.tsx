@@ -1,44 +1,44 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useFinance } from '../../contexts/FinanceContext';
-import { formatCurrency, formatMonth } from '../../utils/formatters';
+import { useFinance } from '../../contexts/finance';
+import { usePreferences } from '../../contexts/preferences';
+import ChartTooltip from './ChartTooltip';
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-semibold mb-1 capitalize">{label}</p>
-        <p className={`text-sm font-medium ${payload[0].value >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-          Saldo: {formatCurrency(payload[0].value)}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
+const AXIS_TICK = { fontSize: 12, fill: 'var(--chart-text)' };
+const LINE_COLOR = '#F5A800';
 
 const BalanceLineChart: React.FC = () => {
   const { getMonthlyHistory } = useFinance();
-  const history = getMonthlyHistory(6);
+  const { t, money, compactMoney, month } = usePreferences();
 
-  const data = history.map((h) => ({
-    month: formatMonth(h.month),
-    Saldo: h.balance,
+  const data = getMonthlyHistory(6).map((h) => ({
+    month: month(h.month).split(' ')[0].replace('.', ''),
+    fullMonth: month(h.month),
+    balance: h.balance,
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-        <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 12 }} />
-        <Tooltip content={<CustomTooltip />} />
+    <ResponsiveContainer width="100%" height={260}>
+      <LineChart data={data} margin={{ top: 5, right: 12, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+        <XAxis dataKey="month" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+        <YAxis width={74} tickFormatter={compactMoney} tick={AXIS_TICK} axisLine={false} tickLine={false} />
+        <Tooltip
+          content={({ active, payload }) =>
+            active && payload?.length ? (
+              <ChartTooltip
+                title={(payload[0].payload as { fullMonth: string }).fullMonth}
+                rows={[{ label: t('summary.balance'), value: money(Number(payload[0].value)), color: LINE_COLOR }]}
+              />
+            ) : null
+          }
+        />
         <Line
           type="monotone"
-          dataKey="Saldo"
-          stroke="#3B82F6"
-          strokeWidth={2}
-          dot={{ r: 4, fill: '#3B82F6' }}
+          dataKey="balance"
+          stroke={LINE_COLOR}
+          strokeWidth={2.5}
+          dot={{ r: 4, fill: LINE_COLOR }}
           activeDot={{ r: 6 }}
         />
       </LineChart>

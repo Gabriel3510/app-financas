@@ -1,49 +1,48 @@
 import React from 'react';
-import { useFinance } from '../../contexts/FinanceContext';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { useFinance } from '../../contexts/finance';
+import { usePreferences } from '../../contexts/preferences';
+import type { Page } from '../../types';
 
 interface RecentTransactionsProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: Page) => void;
 }
 
 const RecentTransactions: React.FC<RecentTransactionsProps> = ({ onNavigate }) => {
-  const { transactions, categories, currentMonth } = useFinance();
+  const { transactions, getCategory, currentMonth } = useFinance();
+  const { t, money, date } = usePreferences();
   const recent = transactions
-    .filter((t) => t.date.startsWith(currentMonth))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter((tx) => tx.date.startsWith(currentMonth))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-200">
+    <div className="card p-4 min-w-0">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800">Transações Recentes</h3>
-        <button
-          onClick={() => onNavigate('transactions')}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Ver todas
+        <h2 className="font-semibold">{t('recent.title')}</h2>
+        <button onClick={() => onNavigate('transactions')} className="text-sm font-medium text-accent hover:underline py-1">
+          {t('recent.viewAll')}
         </button>
       </div>
       {recent.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-4">Nenhuma transação neste mês</p>
+        <p className="text-sm text-subtle text-center py-4">{t('recent.empty')}</p>
       ) : (
         <div className="space-y-3">
-          {recent.map((t) => {
-            const cat = categories.find((c) => c.id === t.categoryId);
+          {recent.map((tx) => {
+            const cat = getCategory(tx.categoryId);
             return (
-              <div key={t.id} className="flex items-center gap-3">
+              <div key={tx.id} className="flex items-center gap-3">
                 <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-base"
-                  style={{ backgroundColor: cat?.color + '20' }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
+                  style={{ backgroundColor: cat.color + '20' }}
                 >
-                  {cat?.icon}
+                  {cat.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{t.description}</p>
-                  <p className="text-xs text-gray-500">{formatDate(t.date)}</p>
+                  <p className="text-sm font-medium truncate">{tx.description}</p>
+                  <p className="text-xs text-subtle">{date(tx.date)}</p>
                 </div>
-                <span className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                  {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                <span className={`text-sm font-semibold tabular-nums whitespace-nowrap ${tx.type === 'income' ? 'text-income' : 'text-expense'}`}>
+                  {tx.type === 'income' ? '+' : '-'}{money(tx.amount)}
                 </span>
               </div>
             );

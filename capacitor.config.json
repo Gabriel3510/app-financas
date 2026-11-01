@@ -1,0 +1,8 @@
+{
+  "appId": "com.gabriellima.sobra",
+  "appName": "Sobra",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}

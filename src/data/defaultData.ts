@@ -1,5 +1,5 @@
-import type { Category, Transaction, Budget, MonthSalary } from '../types';
-import { format, subMonths } from 'date-fns';
+import type { Category, Transaction, Budget, MonthSalary, SavingsGoal, FixedExpense } from '../types';
+import { addMonths, format, subMonths } from 'date-fns';
 
 export const DEFAULT_EXPENSE_CATEGORIES: Category[] = [
   { id: 'food', name: 'Alimentação', icon: '🍔', color: '#F59E0B', type: 'expense' },
@@ -37,44 +37,48 @@ const monthStr = (monthsAgo: number): string => {
 };
 
 const dateInMonth = (monthsAgo: number, day: number): string => {
-  const d = subMonths(new Date(), monthsAgo);
-  return format(new Date(d.getFullYear(), d.getMonth(), day), "yyyy-MM-dd'T'00:00:00.000'Z'");
+  const now = new Date();
+  const d = subMonths(now, monthsAgo);
+  const safeDay = monthsAgo === 0 ? Math.min(day, now.getDate()) : day;
+  return format(new Date(d.getFullYear(), d.getMonth(), safeDay), 'yyyy-MM-dd');
 };
 
 export const generateSampleData = (): {
   transactions: Transaction[];
   budgets: Budget[];
   salaries: MonthSalary[];
+  goals: SavingsGoal[];
+  fixedExpenses: FixedExpense[];
 } => {
   const transactions: Transaction[] = [
     // 2 months ago
-    { id: 's2', description: 'Salário', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(2, 5), createdAt: dateInMonth(2, 5) },
-    { id: 'f2a', description: 'Supermercado', amount: 450, type: 'expense', categoryId: 'food', date: dateInMonth(2, 8), createdAt: dateInMonth(2, 8) },
-    { id: 'f2b', description: 'Restaurante', amount: 120, type: 'expense', categoryId: 'food', date: dateInMonth(2, 15), createdAt: dateInMonth(2, 15) },
-    { id: 't2', description: 'Combustível', amount: 200, type: 'expense', categoryId: 'transport', date: dateInMonth(2, 10), createdAt: dateInMonth(2, 10) },
-    { id: 'h2', description: 'Aluguel', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(2, 5), createdAt: dateInMonth(2, 5) },
-    { id: 'u2', description: 'Energia Elétrica', amount: 150, type: 'expense', categoryId: 'utilities', date: dateInMonth(2, 12), createdAt: dateInMonth(2, 12) },
-    { id: 'l2', description: 'Cinema', amount: 80, type: 'expense', categoryId: 'leisure', date: dateInMonth(2, 20), createdAt: dateInMonth(2, 20) },
-    { id: 'hea2', description: 'Farmácia', amount: 60, type: 'expense', categoryId: 'health', date: dateInMonth(2, 18), createdAt: dateInMonth(2, 18) },
+    { id: 's2', description: 'Salário', sampleKey: 'salary', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(2, 5), createdAt: dateInMonth(2, 5) },
+    { id: 'f2a', description: 'Supermercado', sampleKey: 'supermarket', amount: 450, type: 'expense', categoryId: 'food', date: dateInMonth(2, 8), createdAt: dateInMonth(2, 8) },
+    { id: 'f2b', description: 'Restaurante', sampleKey: 'restaurant', amount: 120, type: 'expense', categoryId: 'food', date: dateInMonth(2, 15), createdAt: dateInMonth(2, 15) },
+    { id: 't2', description: 'Combustível', sampleKey: 'fuel', amount: 200, type: 'expense', categoryId: 'transport', date: dateInMonth(2, 10), createdAt: dateInMonth(2, 10) },
+    { id: 'h2', description: 'Aluguel', sampleKey: 'rent', fixedId: 'fx1', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(2, 5), createdAt: dateInMonth(2, 5) },
+    { id: 'u2', description: 'Energia Elétrica', sampleKey: 'electricity', amount: 150, type: 'expense', categoryId: 'utilities', date: dateInMonth(2, 12), createdAt: dateInMonth(2, 12) },
+    { id: 'l2', description: 'Cinema', sampleKey: 'cinema', amount: 80, type: 'expense', categoryId: 'leisure', date: dateInMonth(2, 20), createdAt: dateInMonth(2, 20) },
+    { id: 'hea2', description: 'Farmácia', sampleKey: 'pharmacy', amount: 60, type: 'expense', categoryId: 'health', date: dateInMonth(2, 18), createdAt: dateInMonth(2, 18) },
     // 1 month ago
-    { id: 's1', description: 'Salário', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(1, 5), createdAt: dateInMonth(1, 5) },
-    { id: 'fr1', description: 'Projeto Freelance', amount: 800, type: 'income', categoryId: 'freelance', date: dateInMonth(1, 15), createdAt: dateInMonth(1, 15) },
-    { id: 'f1a', description: 'Supermercado', amount: 520, type: 'expense', categoryId: 'food', date: dateInMonth(1, 7), createdAt: dateInMonth(1, 7) },
-    { id: 'f1b', description: 'iFood', amount: 90, type: 'expense', categoryId: 'food', date: dateInMonth(1, 20), createdAt: dateInMonth(1, 20) },
-    { id: 't1', description: 'Uber / Transporte', amount: 180, type: 'expense', categoryId: 'transport', date: dateInMonth(1, 12), createdAt: dateInMonth(1, 12) },
-    { id: 'h1', description: 'Aluguel', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(1, 5), createdAt: dateInMonth(1, 5) },
-    { id: 'u1', description: 'Internet + Energia', amount: 200, type: 'expense', categoryId: 'utilities', date: dateInMonth(1, 10), createdAt: dateInMonth(1, 10) },
-    { id: 'e1', description: 'Curso Online', amount: 150, type: 'expense', categoryId: 'education', date: dateInMonth(1, 8), createdAt: dateInMonth(1, 8) },
-    { id: 'sh1', description: 'Amazon', amount: 250, type: 'expense', categoryId: 'shopping', date: dateInMonth(1, 25), createdAt: dateInMonth(1, 25) },
+    { id: 's1', description: 'Salário', sampleKey: 'salary', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(1, 5), createdAt: dateInMonth(1, 5) },
+    { id: 'fr1', description: 'Projeto Freelance', sampleKey: 'freelanceProject', amount: 800, type: 'income', categoryId: 'freelance', date: dateInMonth(1, 15), createdAt: dateInMonth(1, 15) },
+    { id: 'f1a', description: 'Supermercado', sampleKey: 'supermarket', amount: 520, type: 'expense', categoryId: 'food', date: dateInMonth(1, 7), createdAt: dateInMonth(1, 7) },
+    { id: 'f1b', description: 'iFood', sampleKey: 'foodDelivery', amount: 90, type: 'expense', categoryId: 'food', date: dateInMonth(1, 20), createdAt: dateInMonth(1, 20) },
+    { id: 't1', description: 'Uber / Transporte', sampleKey: 'rideApp', amount: 180, type: 'expense', categoryId: 'transport', date: dateInMonth(1, 12), createdAt: dateInMonth(1, 12) },
+    { id: 'h1', description: 'Aluguel', sampleKey: 'rent', fixedId: 'fx1', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(1, 5), createdAt: dateInMonth(1, 5) },
+    { id: 'u1', description: 'Internet + Energia', sampleKey: 'internetPower', amount: 200, type: 'expense', categoryId: 'utilities', date: dateInMonth(1, 10), createdAt: dateInMonth(1, 10) },
+    { id: 'e1', description: 'Curso Online', sampleKey: 'onlineCourse', amount: 150, type: 'expense', categoryId: 'education', date: dateInMonth(1, 8), createdAt: dateInMonth(1, 8) },
+    { id: 'sh1', description: 'Amazon', sampleKey: 'onlineStore', amount: 250, type: 'expense', categoryId: 'shopping', date: dateInMonth(1, 25), createdAt: dateInMonth(1, 25) },
     // current month
-    { id: 's0', description: 'Salário', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(0, 5), createdAt: dateInMonth(0, 5) },
-    { id: 'f0a', description: 'Supermercado', amount: 480, type: 'expense', categoryId: 'food', date: dateInMonth(0, 7), createdAt: dateInMonth(0, 7) },
-    { id: 'f0b', description: 'Restaurante', amount: 75, type: 'expense', categoryId: 'food', date: dateInMonth(0, 14), createdAt: dateInMonth(0, 14) },
-    { id: 't0', description: 'Combustível', amount: 190, type: 'expense', categoryId: 'transport', date: dateInMonth(0, 9), createdAt: dateInMonth(0, 9) },
-    { id: 'h0', description: 'Aluguel', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(0, 5), createdAt: dateInMonth(0, 5) },
-    { id: 'u0', description: 'Energia Elétrica', amount: 140, type: 'expense', categoryId: 'utilities', date: dateInMonth(0, 11), createdAt: dateInMonth(0, 11) },
-    { id: 'hea0', description: 'Plano de Saúde', amount: 300, type: 'expense', categoryId: 'health', date: dateInMonth(0, 6), createdAt: dateInMonth(0, 6) },
-    { id: 'l0', description: 'Streaming', amount: 55, type: 'expense', categoryId: 'leisure', date: dateInMonth(0, 10), createdAt: dateInMonth(0, 10) },
+    { id: 's0', description: 'Salário', sampleKey: 'salary', amount: 5000, type: 'income', categoryId: 'salary', date: dateInMonth(0, 5), createdAt: dateInMonth(0, 5) },
+    { id: 'f0a', description: 'Supermercado', sampleKey: 'supermarket', amount: 480, type: 'expense', categoryId: 'food', date: dateInMonth(0, 7), createdAt: dateInMonth(0, 7) },
+    { id: 'f0b', description: 'Restaurante', sampleKey: 'restaurant', amount: 75, type: 'expense', categoryId: 'food', date: dateInMonth(0, 14), createdAt: dateInMonth(0, 14) },
+    { id: 't0', description: 'Combustível', sampleKey: 'fuel', amount: 190, type: 'expense', categoryId: 'transport', date: dateInMonth(0, 9), createdAt: dateInMonth(0, 9) },
+    { id: 'h0', description: 'Aluguel', sampleKey: 'rent', fixedId: 'fx1', amount: 1200, type: 'expense', categoryId: 'housing', date: dateInMonth(0, 5), createdAt: dateInMonth(0, 5) },
+    { id: 'u0', description: 'Energia Elétrica', sampleKey: 'electricity', amount: 140, type: 'expense', categoryId: 'utilities', date: dateInMonth(0, 11), createdAt: dateInMonth(0, 11) },
+    { id: 'hea0', description: 'Plano de Saúde', sampleKey: 'healthPlan', amount: 300, type: 'expense', categoryId: 'health', date: dateInMonth(0, 6), createdAt: dateInMonth(0, 6) },
+    { id: 'l0', description: 'Streaming', sampleKey: 'streaming', fixedId: 'fx2', amount: 55, type: 'expense', categoryId: 'leisure', date: dateInMonth(0, 10), createdAt: dateInMonth(0, 10) },
   ];
 
   const currentMonth = monthStr(0);
@@ -93,5 +97,24 @@ export const generateSampleData = (): {
     { month: currentMonth, amount: 5000 },
   ];
 
-  return { transactions, budgets, salaries };
+  const goals: SavingsGoal[] = [
+    {
+      id: 'g1',
+      name: 'Fundo de emergência',
+      icon: '🛟',
+      target: 6000,
+      saved: 1500,
+      deadline: format(addMonths(new Date(), 10), 'yyyy-MM'),
+      createdAt: new Date().toISOString(),
+      sampleKey: 'goal',
+    },
+  ];
+
+  const fixedExpenses: FixedExpense[] = [
+    { id: 'fx1', name: 'Aluguel', amount: 1200, categoryId: 'housing', day: 5, sampleKey: 'rent' },
+    { id: 'fx2', name: 'Streaming', amount: 55, categoryId: 'leisure', day: 10, sampleKey: 'streaming' },
+    { id: 'fx3', name: 'Internet', amount: 60, categoryId: 'utilities', day: 15, sampleKey: 'internet' },
+  ];
+
+  return { transactions, budgets, salaries, goals, fixedExpenses };
 };
