@@ -5,6 +5,7 @@ import { usePreferences } from '../../contexts/preferences';
 import type { Transaction, TransactionType } from '../../types';
 import { getCurrentMonth, getToday } from '../../utils/formatters';
 import Modal from '../UI/Modal';
+import Select from '../UI/Select';
 
 interface TransactionFormProps {
   onClose: () => void;
@@ -108,13 +109,13 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, editingTrans
 
         <label className="block">
           <span className="field-label">{t('tx.category')}</span>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="input">
-            {filteredCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            label={t('tx.category')}
+            value={categoryId}
+            onChange={setCategoryId}
+            required
+            options={filteredCategories.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+          />
         </label>
 
         <label className="block">

@@ -8,6 +8,7 @@ import type { Category, Currency } from '../../types';
 import { normalizeAppData } from '../../utils/appData';
 import ConfirmDialog from '../UI/ConfirmDialog';
 import PreferencePickers from '../UI/PreferencePickers';
+import Select from '../UI/Select';
 
 const COLORS = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#6B7280'];
 const ICONS = ['📦','🌟','🔧','🏋️','🎯','🎪','🎸','🍕','🍺','💻','🎓','🏆'];
@@ -131,9 +132,12 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
           </label>
           <label className="block mt-4">
             <span className="field-label">{t('currency.label')}</span>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className="input">
-              {CURRENCIES.map((code) => <option key={code} value={code}>{code} — {currencyNames.of(code)}</option>)}
-            </select>
+            <Select
+              label={t('currency.label')}
+              value={currency}
+              onChange={(value) => setCurrency(value as Currency)}
+              options={CURRENCIES.map((code) => ({ value: code, label: `${code} — ${currencyNames.of(code)}` }))}
+            />
             <span className="block text-xs text-subtle mt-1.5">{t('currency.hint')}</span>
           </label>
         </section>
@@ -176,17 +180,25 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
             <div className="grid grid-cols-2 gap-3">
               <label className="block min-w-0">
                 <span className="field-label">{t('settings.categoryIcon')}</span>
-                <select value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)} className="input">
-                  {ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
-                </select>
+                <Select
+                  label={t('settings.categoryIcon')}
+                  value={newCatIcon}
+                  onChange={setNewCatIcon}
+                  options={ICONS.map((icon) => ({ value: icon, label: icon }))}
+                />
               </label>
               <label className="block min-w-0">
                 <span className="field-label">{t('settings.categoryType')}</span>
-                <select value={newCatType} onChange={(e) => setNewCatType(e.target.value as Category['type'])} className="input">
-                  <option value="expense">{t('type.expense')}</option>
-                  <option value="income">{t('type.income')}</option>
-                  <option value="both">{t('type.both')}</option>
-                </select>
+                <Select
+                  label={t('settings.categoryType')}
+                  value={newCatType}
+                  onChange={(value) => setNewCatType(value as Category['type'])}
+                  options={[
+                    { value: 'expense', label: t('type.expense') },
+                    { value: 'income', label: t('type.income') },
+                    { value: 'both', label: t('type.both') },
+                  ]}
+                />
               </label>
             </div>
             <div>

@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
 import type { TransactionType } from '../../types';
+import Select from '../UI/Select';
 
 interface TransactionFiltersProps {
   search: string;
@@ -40,29 +41,27 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
           className="input pl-9"
         />
       </div>
-      <select
-        aria-label={t('tx.allTypes')}
+      <Select
+        label={t('tx.allTypes')}
         value={filterType}
-        onChange={(e) => changeType(e.target.value as TransactionType | 'all')}
-        className="input sm:w-auto"
-      >
-        <option value="all">{t('tx.allTypes')}</option>
-        <option value="income">{t('tx.incomes')}</option>
-        <option value="expense">{t('tx.expenses')}</option>
-      </select>
-      <select
-        aria-label={t('tx.allCategories')}
+        onChange={(value) => changeType(value as TransactionType | 'all')}
+        className="sm:w-44"
+        options={[
+          { value: 'all', label: t('tx.allTypes') },
+          { value: 'income', label: t('tx.incomes') },
+          { value: 'expense', label: t('tx.expenses') },
+        ]}
+      />
+      <Select
+        label={t('tx.allCategories')}
         value={filterCategory}
-        onChange={(e) => setFilterCategory(e.target.value)}
-        className="input sm:w-auto"
-      >
-        <option value="">{t('tx.allCategories')}</option>
-        {available.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.icon} {c.name}
-          </option>
-        ))}
-      </select>
+        onChange={setFilterCategory}
+        className="sm:w-48"
+        options={[
+          { value: '', label: t('tx.allCategories') },
+          ...available.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+        ]}
+      />
     </div>
   );
 };

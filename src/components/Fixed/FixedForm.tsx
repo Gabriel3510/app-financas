@@ -4,6 +4,7 @@ import { useNotifications } from '../../contexts/notifications';
 import { usePreferences } from '../../contexts/preferences';
 import type { FixedExpense } from '../../types';
 import Modal from '../UI/Modal';
+import Select from '../UI/Select';
 
 interface FixedFormProps {
   onClose: () => void;
@@ -47,16 +48,22 @@ const FixedForm: React.FC<FixedFormProps> = ({ onClose, editing }) => {
           </label>
           <label className="block min-w-0">
             <span className="field-label">{t('fixed.day')}</span>
-            <select value={day} onChange={(e) => setDay(e.target.value)} className="input">
-              {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-            </select>
+            <Select
+              label={t('fixed.day')}
+              value={day}
+              onChange={setDay}
+              options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+            />
           </label>
         </div>
         <label className="block">
           <span className="field-label">{t('tx.category')}</span>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="input">
-            {expenseCategories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-          </select>
+          <Select
+            label={t('tx.category')}
+            value={categoryId}
+            onChange={setCategoryId}
+            options={expenseCategories.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+          />
         </label>
         <div className="flex gap-3">
           <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('common.cancel')}</button>

@@ -7,6 +7,7 @@ import type { Currency } from '../../types';
 import { getCurrentMonth, getToday } from '../../utils/formatters';
 import Logo from '../UI/Logo';
 import PreferencePickers from '../UI/PreferencePickers';
+import Select from '../UI/Select';
 
 const STEP_COUNT = 4;
 
@@ -95,9 +96,12 @@ const Onboarding: React.FC<{ onDone: () => void }> = ({ onDone }) => {
               <p className="text-sm text-muted mb-5">{t('onboarding.currency.body')}</p>
               <label className="block">
                 <span className="field-label">{t('currency.label')}</span>
-                <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className="input">
-                  {CURRENCIES.map((code) => <option key={code} value={code}>{code} — {currencyNames.of(code)}</option>)}
-                </select>
+                <Select
+                  label={t('currency.label')}
+                  value={currency}
+                  onChange={(value) => setCurrency(value as Currency)}
+                  options={CURRENCIES.map((code) => ({ value: code, label: `${code} — ${currencyNames.of(code)}` }))}
+                />
               </label>
             </>
           )}
