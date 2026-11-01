@@ -4,6 +4,7 @@ import { useNotifications } from '../../contexts/notifications';
 import { usePreferences } from '../../contexts/preferences';
 import type { Budget } from '../../types';
 import Modal from '../UI/Modal';
+import Select from '../UI/Select';
 
 interface BudgetFormProps {
   onClose: () => void;
@@ -43,12 +44,14 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ onClose, editingBudget }) => {
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <label className="block">
           <span className="field-label">{t('tx.category')}</span>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="input">
-            <option value="">{t('budget.selectCategory')}</option>
-            {expenseCategories.map((c) => (
-              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-            ))}
-          </select>
+          <Select
+            label={t('tx.category')}
+            value={categoryId}
+            onChange={setCategoryId}
+            placeholder={t('budget.selectCategory')}
+            required
+            options={expenseCategories.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+          />
         </label>
         <label className="block">
           <span className="field-label">{t('budget.limit')}</span>

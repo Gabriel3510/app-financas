@@ -4,7 +4,7 @@ Aplicativo de controle de finanças pessoais para Android, iOS e navegador. Regi
 
 Todos os dados ficam no próprio dispositivo. O app não tem servidor, conta de usuário nem envio de dados pela internet.
 
-**Versão atual:** 1.0.0
+**Versão atual:** 1.0.1
 
 ## Sumário
 

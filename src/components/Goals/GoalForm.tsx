@@ -6,6 +6,7 @@ import type { SavingsGoal } from '../../types';
 import { getCurrentMonth, shiftMonth } from '../../utils/formatters';
 import { getMonthlyNeed, getSpendingProfile, monthsUntil, planGoal } from '../../utils/goalPlanner';
 import Modal from '../UI/Modal';
+import Select from '../UI/Select';
 import GoalInsight from './GoalInsight';
 
 const ICONS = ['🎯', '🛟', '✈️', '🚗', '🏠', '💻', '🎓', '💍', '👶', '🏖️', '📱', '💰'];
@@ -62,9 +63,13 @@ const GoalForm: React.FC<GoalFormProps> = ({ onClose, editing }) => {
           </label>
           <label className="block">
             <span className="field-label">{t('goals.icon')}</span>
-            <select value={icon} onChange={(e) => setIcon(e.target.value)} className="input">
-              {ICONS.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+            <Select
+              label={t('goals.icon')}
+              value={icon}
+              onChange={setIcon}
+              className="w-20"
+              options={ICONS.map((item) => ({ value: item, label: item }))}
+            />
           </label>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -79,10 +84,15 @@ const GoalForm: React.FC<GoalFormProps> = ({ onClose, editing }) => {
         </div>
         <label className="block">
           <span className="field-label">{t('goals.deadline')}</span>
-          <select value={months} onChange={(e) => setMonths(e.target.value)} className="input">
-            <option value="">{t('goals.noDeadline')}</option>
-            {deadlineOptions.map((count) => <option key={count} value={count}>{t('goals.months', { count })}</option>)}
-          </select>
+          <Select
+            label={t('goals.deadline')}
+            value={months}
+            onChange={setMonths}
+            options={[
+              { value: '', label: t('goals.noDeadline') },
+              ...deadlineOptions.map((count) => ({ value: String(count), label: t('goals.months', { count }) })),
+            ]}
+          />
         </label>
         {preview && (
           <div className="rounded-xl border border-line p-3">
