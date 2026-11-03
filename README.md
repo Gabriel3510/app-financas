@@ -1,10 +1,10 @@
 # Sobra
 
-Aplicativo de controle de finanças pessoais para Android, iOS e navegador. Registra receitas e despesas, acompanha gastos fixos e limites por categoria, e calcula planos de poupança com base nos gastos reais do usuário.
+Aplicativo de controle de finanças pessoais para Android, iOS, computador (Windows, Linux e macOS) e navegador. Registra receitas e despesas, acompanha gastos fixos e limites por categoria, e calcula planos de poupança com base nos gastos reais do usuário.
 
-Todos os dados ficam no próprio dispositivo. O app não tem servidor, conta de usuário nem envio de dados pela internet.
+Todos os dados ficam no próprio dispositivo. O app não tem servidor nem conta de usuário. O único acesso à internet é a consulta de taxas de câmbio, feita apenas ao registrar uma compra em outra moeda.
 
-**Versão atual:** 1.0.1
+**Versão atual:** 1.1.1
 
 ## Sumário
 
@@ -15,6 +15,7 @@ Todos os dados ficam no próprio dispositivo. O app não tem servidor, conta de 
 - [Build para web](#build-para-web)
 - [Build para Android](#build-para-android)
 - [Build para iOS](#build-para-ios)
+- [Build para computador](#build-para-computador)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Dados e privacidade](#dados-e-privacidade)
 - [Backup](#backup)
@@ -26,15 +27,16 @@ Todos os dados ficam no próprio dispositivo. O app não tem servidor, conta de 
 
 | Área | Descrição |
 | --- | --- |
-| Primeira abertura | Configuração guiada de nome, idioma, tema, moeda e dados iniciais, seguida de um tutorial. Executada uma única vez. |
+| Primeira abertura | Configuração guiada de idioma, nome, tema e moeda, seguida de um tutorial de 14 passos com dados de exemplo. Ao final, o app oferece apagar os exemplos para começar com dados reais. Executada uma única vez. |
 | Painel | Saudação, meta diária, gastos da semana, resumo do mês, gastos fixos pendentes, alertas e transações recentes. Os cartões levam às telas correspondentes. |
-| Transações | Cadastro, edição e exclusão com opção de desfazer, além de busca, filtros, ordenação e paginação. |
-| Gráficos | Gastos por categoria, histórico de seis meses e saldo mensal, relativos ao mês selecionado. |
+| Transações | Cadastro com calendário próprio, parcelamento, repetição mensal e compra em outra moeda com conversão automática. Edição, exclusão com opção de desfazer, busca, filtros, ordenação e paginação. |
+| Gráficos | Gastos por categoria, histórico de seis meses e evolução do saldo acumulado, relativos ao mês selecionado. |
 | Objetivos | Metas de poupança com valor, prazo, progresso, diagnóstico de viabilidade e sugestões de corte. |
-| Gastos fixos | Despesas recorrentes com dia de vencimento e marcação de pagamento mensal. |
+| Fixos | Receitas e despesas recorrentes com dia previsto e marcação mensal de recebido ou pago, válidas a partir do mês em que foram criadas. |
 | Limites | Limite de gasto mensal por categoria, com alertas e cópia do mês anterior. |
 | Notificações | Central no app com alertas de orçamento, lembretes e dica diária. Não há notificações com o app fechado. |
 | Definições | Idioma, tema, moeda, nome, salário, categorias personalizadas, backup e tutorial. |
+| Navegação | Barra lateral no computador. No celular, barra inferior com Painel, Transações, Fixos, Objetivos e um menu Mais com Limites, Gráficos e Definições. O logo leva de volta ao painel. |
 
 ## Tecnologias
 
@@ -46,7 +48,8 @@ Todos os dados ficam no próprio dispositivo. O app não tem servidor, conta de 
 | Gráficos | Recharts |
 | Datas | date-fns |
 | Ícones | lucide-react |
-| Apps nativos | Capacitor 6 |
+| Apps móveis | Capacitor 6 |
+| App de computador | Electron 45 e electron-builder |
 
 ## Requisitos
 
@@ -73,6 +76,10 @@ A aplicação fica disponível em <http://localhost:5173>.
 | `npm run lint` | Executa o ESLint |
 | `npm run cap:sync` | Gera o build e copia o resultado para os projetos nativos |
 | `npm run android:apk` | Gera o APK de release assinado |
+| `npm run desktop` | Abre a versão de computador a partir do build atual |
+| `npm run desktop:linux` | Gera AppImage e pacote `.deb` |
+| `npm run desktop:win` | Gera o pacote para Windows |
+| `npm run desktop:mac` | Gera o `.dmg` para macOS (exige macOS) |
 
 Depois de alterar `tailwind.config.js` com o servidor em execução, reinicie o `npm run dev`.
 
@@ -148,11 +155,34 @@ No Xcode, selecione o target **App**, defina a equipe em **Signing & Capabilitie
 
 Sem um Mac, a alternativa é publicar a versão web e abri-la no Safari do iPhone. Em **Compartilhar → Adicionar à Tela de Início**, ela passa a funcionar como um app.
 
+## Build para computador
+
+A versão de computador usa o Electron para abrir o mesmo build web numa janela própria. Os arquivos são servidos pelo endereço interno `app://sobra`, o que mantém o `localStorage` e as demais APIs do navegador funcionando como na web.
+
+| Sistema | Comando | Resultado em `release/desktop/` |
+| --- | --- | --- |
+| Linux | `npm run desktop:linux` | `Sobra-<versão>.AppImage` e `sobra_<versão>_amd64.deb` |
+| Windows | `npm run desktop:win` | `Sobra-<versão>-win.zip` |
+| macOS | `npm run desktop:mac` | `Sobra-<versão>.dmg` |
+
+Gerado no Linux, o pacote do Windows é um `.zip` portátil: basta extrair e abrir `Sobra.exe`. Um instalador `.exe` com ícone próprio exige o Wine. Com ele instalado (`sudo apt install wine`), gere o instalador com:
+
+```bash
+npm run build && npx electron-builder --win nsis -c.win.signAndEditExecutable=true
+```
+
+Os pacotes não são assinados. Por isso, o Windows SmartScreen e o Gatekeeper do macOS exibem um aviso na primeira abertura.
+
+Os dados ficam na pasta de dados do usuário de cada sistema, como `~/.config/Sobra` no Linux e `%APPDATA%\Sobra` no Windows, e não são compartilhados com o navegador nem com o celular. Para levar dados de um dispositivo a outro, use a exportação e a importação de backup.
+
+Se a janela não abrir quando iniciada por um terminal integrado do VS Code, remova a variável `ELECTRON_RUN_AS_NODE` do ambiente (`env -u ELECTRON_RUN_AS_NODE npm run desktop`).
+
 ## Estrutura do projeto
 
 ```text
 .
 ├── android/                 Projeto nativo Android
+├── electron/                Janela e ícone da versão de computador
 ├── ios/                     Projeto nativo iOS
 ├── public/                  Ícones, manifesto e service worker
 ├── src/
@@ -171,7 +201,7 @@ Sem um Mac, a alternativa é publicar a versão web e abri-la no Safari do iPhon
 │   ├── data/                Categorias padrão e dados de exemplo
 │   ├── hooks/               Persistência em localStorage
 │   ├── i18n/                Traduções
-│   ├── pages/               Telas
+│   ├── pages/               Telas (Painel, Transações, Fixos, Objetivos, Limites, Gráficos, Definições)
 │   ├── types/               Tipos de domínio
 │   └── utils/               Cálculos, planejamento, formatação e arquivos
 └── capacitor.config.json    Configuração dos apps nativos
@@ -212,13 +242,21 @@ A importação valida o arquivo e, após confirmação, substitui todos os dados
 
 **Sugestões de corte.** Consideram apenas categorias flexíveis, como lazer, compras, alimentação e transporte, além das categorias personalizadas. Moradia, saúde, educação, contas e dívidas nunca são sugeridas.
 
-**Meta diária.** É a renda do mês, ou a renda média se for maior, menos a necessidade dos objetivos, os gastos fixos pendentes e o que já foi gasto antes de hoje, dividida pelos dias restantes do mês.
+**Meta diária.** Parte da renda esperada do mês: o maior valor entre a renda média e a renda já recebida somada às receitas fixas por receber. Desse valor saem a necessidade dos objetivos, as despesas fixas pendentes e o que já foi gasto antes de hoje. O resultado é dividido pelos dias restantes do mês.
 
-**Gastos fixos.** Marcar como pago cria uma transação vinculada ao gasto. Excluir essa transação faz com que ele volte a ficar pendente no mês.
+**Saldo acumulado.** O saldo de um mês é o saldo do mês anterior somado às receitas e subtraídas as despesas do mês. O cartão de saldo mostra o valor transitado dos meses anteriores.
+
+**Fixos.** Podem ser receitas ou despesas e valem a partir do mês em que foram criados. Marcar como pago ou recebido cria uma transação vinculada. Excluir essa transação faz com que o fixo volte a ficar pendente no mês. Fixos gravados por versões anteriores, sem tipo, são tratados como despesas.
+
+**Parcelamento.** Uma compra parcelada gera uma transação por mês, a partir da data escolhida, com o total dividido em partes iguais. A diferença de arredondamento vai para a última parcela. Cada parcela é editada ou excluída individualmente.
+
+**Repetição mensal.** Uma receita ou despesa marcada como "Todos os meses" cria um fixo a partir daquele mês e já o registra como recebido ou pago. O parcelamento está disponível apenas para despesas.
 
 **Limites.** Ficam amarelos a partir de 70% e vermelhos a partir de 90%. Valem somente para o mês em que foram criados.
 
-**Moeda.** Altera apenas a exibição. Os valores salvos não são convertidos.
+**Moeda.** A moeda do app altera apenas a exibição. Os valores salvos não são convertidos.
+
+**Compras em outra moeda.** A taxa é obtida em [open.er-api.com](https://open.er-api.com) e guardada por 12 horas. Sem conexão, o app usa a última taxa conhecida ou pede a taxa manualmente. A transação é salva na moeda do app, com o valor, a moeda e a taxa originais anotados.
 
 ## Internacionalização
 

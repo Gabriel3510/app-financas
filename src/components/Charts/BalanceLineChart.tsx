@@ -14,7 +14,7 @@ const BalanceLineChart: React.FC = () => {
   const data = getMonthlyHistory(6).map((h) => ({
     month: month(h.month).split(' ')[0].replace('.', ''),
     fullMonth: month(h.month),
-    balance: h.balance,
+    balance: h.accumulated,
   }));
 
   return (

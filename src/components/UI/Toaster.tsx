@@ -21,7 +21,7 @@ const Toaster: React.FC<ToasterProps> = ({ toasts, onClose }) => {
   return (
     <div
       aria-live="polite"
-      className="fixed z-[70] left-4 right-4 bottom-above-nav md:left-auto md:right-6 md:bottom-6 md:w-96 flex flex-col gap-2 pointer-events-none"
+      className="fixed z-[45] left-4 right-4 bottom-above-nav md:left-auto md:right-6 md:bottom-6 md:w-96 flex flex-col gap-2 pointer-events-none"
     >
       {toasts.map((toast) => (
         <div

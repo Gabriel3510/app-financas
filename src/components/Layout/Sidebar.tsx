@@ -14,13 +14,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
 
   return (
     <aside className="hidden md:flex flex-col w-64 flex-shrink-0 bg-surface border-r border-line h-dvh sticky top-0 overflow-y-auto">
-      <div className="px-5 py-5 flex items-center gap-3">
+      <button
+        data-tour="logo-home"
+        onClick={() => onNavigate('dashboard')}
+        aria-label={t('nav.home')}
+        className="mx-2 mt-2 mb-1 px-3 py-3 flex items-center gap-3 rounded-xl text-left hover:bg-surface-2 transition-colors"
+      >
         <Logo size={38} className="flex-shrink-0" />
-        <div className="min-w-0">
-          <p className="font-bold leading-tight">{t('app.name')}</p>
-          <p className="text-xs text-subtle truncate">{t('app.tagline')}</p>
-        </div>
-      </div>
+        <span className="min-w-0">
+          <span className="block font-bold leading-tight">{t('app.name')}</span>
+          <span className="block text-xs text-subtle truncate">{t('app.tagline')}</span>
+        </span>
+      </button>
       <nav className="flex-1 px-3 pb-4 space-y-1">
         {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
           <button

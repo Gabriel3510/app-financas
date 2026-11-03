@@ -7,11 +7,12 @@ import { CURRENCIES } from '../../types';
 import type { Category, Currency } from '../../types';
 import { normalizeAppData } from '../../utils/appData';
 import ConfirmDialog from '../UI/ConfirmDialog';
+import { CategoryBadge } from '../UI/AppIcon';
+import { CATEGORY_ICON_CHOICES } from '../UI/icons';
 import PreferencePickers from '../UI/PreferencePickers';
 import Select from '../UI/Select';
 
 const COLORS = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#6B7280'];
-const ICONS = ['📦','🌟','🔧','🏋️','🎯','🎪','🎸','🍕','🍺','💻','🎓','🏆'];
 
 interface PendingConfirm {
   title: string;
@@ -63,7 +64,7 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
   const currencyNames = new Intl.DisplayNames(language, { type: 'currency' });
 
   const [newCatName, setNewCatName] = useState('');
-  const [newCatIcon, setNewCatIcon] = useState('📦');
+  const [newCatIcon, setNewCatIcon] = useState('package');
   const [newCatColor, setNewCatColor] = useState('#F59E0B');
   const [newCatType, setNewCatType] = useState<Category['type']>('expense');
   const [pending, setPending] = useState<PendingConfirm | null>(null);
@@ -184,7 +185,7 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
                   label={t('settings.categoryIcon')}
                   value={newCatIcon}
                   onChange={setNewCatIcon}
-                  options={ICONS.map((icon) => ({ value: icon, label: icon }))}
+                  options={CATEGORY_ICON_CHOICES.map((icon) => ({ value: icon, label: '', icon: <CategoryBadge icon={icon} color={newCatColor} size="sm" /> }))}
                 />
               </label>
               <label className="block min-w-0">
@@ -227,9 +228,7 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
             <div className="space-y-2">
               {customCategories.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 pl-2 rounded-xl bg-surface-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: c.color + '30' }}>
-                    {c.icon}
-                  </div>
+                  <CategoryBadge icon={c.icon} color={c.color} size="sm" />
                   <span className="flex-1 min-w-0 truncate text-sm">{c.name}</span>
                   <button
                     onClick={() => setPending({
@@ -251,7 +250,7 @@ const Settings: React.FC<SettingsProps> = ({ onStartTutorial }) => {
 
         {/* Data management */}
         <section className="card p-4 md:p-5">
-          <h2 className="font-semibold mb-4">{t('settings.data')}</h2>
+          <h2 data-tour="settings-data" className="font-semibold mb-4">{t('settings.data')}</h2>
           <div className="space-y-3">
             <button onClick={handleExport} className={dataAction}>
               <Download size={18} className="text-accent" />

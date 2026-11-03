@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
 import type { TransactionType } from '../../types';
-import { getTodayPlan } from '../../utils/calculations';
+import { calculateMonthSummary, fixedType, getTodayPlan, isFixedActive } from '../../utils/calculations';
 import { formatWeekday, getCurrentMonth } from '../../utils/formatters';
 import { getMonthlyNeed, getSpendingProfile } from '../../utils/goalPlanner';
 
@@ -15,11 +15,13 @@ const TodayOverview: React.FC<{ onOpenTransactions: (type: TransactionType) => v
 
   const plan = useMemo(() => {
     const goalsNeed = goals.reduce((sum, g) => sum + getMonthlyNeed(g, thisMonth), 0);
-    const pendingFixed = fixedExpenses
-      .filter((f) => !isFixedPaid(f.id, thisMonth))
-      .reduce((sum, f) => sum + f.amount, 0);
+    const pending = fixedExpenses.filter((f) => isFixedActive(f, thisMonth) && !isFixedPaid(f.id, thisMonth));
+    const pendingExpenses = pending.filter((f) => fixedType(f) === 'expense').reduce((sum, f) => sum + f.amount, 0);
+    const pendingIncome = pending.filter((f) => fixedType(f) === 'income').reduce((sum, f) => sum + f.amount, 0);
     const { avgIncome } = getSpendingProfile(transactions, thisMonth, fixedExpenses);
-    return getTodayPlan(transactions, goalsNeed + pendingFixed, avgIncome, now);
+    // Recurring income still to arrive this month counts as money the month will have
+    const expectedIncome = Math.max(avgIncome, calculateMonthSummary(transactions, thisMonth).income + pendingIncome);
+    return getTodayPlan(transactions, goalsNeed + pendingExpenses, expectedIncome, now);
   }, [transactions, goals, fixedExpenses, isFixedPaid, thisMonth, now]);
 
   const { dailyLimit, income, expenses, week } = plan;
@@ -35,7 +37,7 @@ const TodayOverview: React.FC<{ onOpenTransactions: (type: TransactionType) => v
 
   return (
     <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
-      <div className="card p-4 min-w-0">
+      <div data-tour="today" className="card p-4 min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{t('today.title')}</p>
         <p className="text-sm font-medium mb-1.5">{t('today.dailyTarget')}</p>
         <div className="w-full bg-primary-soft rounded-full h-2.5 mb-1">
@@ -60,7 +62,7 @@ const TodayOverview: React.FC<{ onOpenTransactions: (type: TransactionType) => v
         </div>
       </div>
 
-      <div className="card p-4 min-w-0 flex flex-col">
+      <div data-tour="week" className="card p-4 min-w-0 flex flex-col">
         <h2 className="font-semibold">{t('week.title')}</h2>
         <p className="text-xs text-subtle mb-3">{t('week.hint', { value: money(dailyLimit) })}</p>
         <div className="grid grid-cols-7 gap-1.5 flex-1">

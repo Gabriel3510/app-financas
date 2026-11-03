@@ -4,6 +4,7 @@ import { useNotifications } from '../../contexts/notifications';
 import { usePreferences } from '../../contexts/preferences';
 import type { Budget } from '../../types';
 import Modal from '../UI/Modal';
+import { CategoryBadge } from '../UI/AppIcon';
 import Select from '../UI/Select';
 
 interface BudgetFormProps {
@@ -50,7 +51,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ onClose, editingBudget }) => {
             onChange={setCategoryId}
             placeholder={t('budget.selectCategory')}
             required
-            options={expenseCategories.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+            options={expenseCategories.map((c) => ({ value: c.id, label: c.name, icon: <CategoryBadge icon={c.icon} color={c.color} size="sm" /> }))}
           />
         </label>
         <label className="block">

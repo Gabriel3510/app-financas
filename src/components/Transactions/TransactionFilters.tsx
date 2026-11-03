@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
 import type { TransactionType } from '../../types';
+import { CategoryBadge } from '../UI/AppIcon';
 import Select from '../UI/Select';
 
 interface TransactionFiltersProps {
@@ -59,7 +60,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         className="sm:w-48"
         options={[
           { value: '', label: t('tx.allCategories') },
-          ...available.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+          ...available.map((c) => ({ value: c.id, label: c.name, icon: <CategoryBadge icon={c.icon} color={c.color} size="sm" /> })),
         ]}
       />
     </div>

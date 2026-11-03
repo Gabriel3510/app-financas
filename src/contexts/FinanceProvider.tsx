@@ -3,7 +3,7 @@ import { getDaysInMonth, parseISO } from 'date-fns';
 import type { Transaction, Budget, Category, AppData, FixedExpense, SavingsGoal } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ALL_DEFAULT_CATEGORIES, generateSampleData } from '../data/defaultData';
-import { calculateMonthSummary, getExpensesByCategory as calcExpensesByCategory, getMonthlyHistory as calcMonthlyHistory } from '../utils/calculations';
+import { calculateMonthSummary, getExpensesByCategory as calcExpensesByCategory, getMonthlyHistory as calcMonthlyHistory, shiftDate, splitInstallments } from '../utils/calculations';
 import type { CategoryExpense, MonthlyHistory, MonthSummary } from '../utils/calculations';
 import { normalizeAppData } from '../utils/appData';
 import { saveTextFile } from '../utils/saveFile';
@@ -57,7 +57,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     categories.find((c) => c.id === id) ?? {
       id,
       name: t('cat.others_exp'),
-      icon: '📦',
+      icon: 'package',
       color: '#6B7280',
       type: 'both',
     }
@@ -122,7 +122,26 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [setData]);
 
   const addFixed = useCallback((f: Omit<FixedExpense, 'id'>) => {
-    setData((prev) => ({ ...prev, fixedExpenses: [...prev.fixedExpenses, { ...f, id: createId() }] }));
+    const id = createId();
+    setData((prev) => ({ ...prev, fixedExpenses: [...prev.fixedExpenses, { ...f, id }] }));
+    return id;
+  }, [setData]);
+
+  // One transaction per month, so each installment lands in the month it is actually paid
+  const addInstallments = useCallback((tx: Omit<Transaction, 'id' | 'createdAt'>, count: number) => {
+    const group = createId();
+    const createdAt = new Date().toISOString();
+    const parts = splitInstallments(tx.amount, count);
+    const items: Transaction[] = parts.map((amount, i) => ({
+      ...tx,
+      amount,
+      original: tx.original ? { ...tx.original, amount: tx.original.amount / count } : undefined,
+      date: shiftDate(tx.date, i),
+      id: createId(),
+      createdAt,
+      installment: { group, index: i + 1, total: count },
+    }));
+    setData((prev) => ({ ...prev, transactions: [...items, ...prev.transactions] }));
   }, [setData]);
 
   const editFixed = useCallback((id: string, f: Omit<FixedExpense, 'id'>) => {
@@ -144,7 +163,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const payFixed = useCallback((f: FixedExpense, month: string) => {
     const day = Math.min(f.day, getDaysInMonth(parseISO(`${month}-01`)));
     const date = month === getCurrentMonth() ? getToday() : `${month}-${String(day).padStart(2, '0')}`;
-    addTransaction({ description: f.name, amount: f.amount, type: 'expense', categoryId: f.categoryId, date, fixedId: f.id });
+    addTransaction({ description: f.name, amount: f.amount, type: f.type ?? 'expense', categoryId: f.categoryId, date, fixedId: f.id });
   }, [addTransaction]);
 
   const addGoal = useCallback((g: Omit<SavingsGoal, 'id' | 'createdAt'>) => {
@@ -275,6 +294,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     restoreBudget,
     copyBudgets,
     addFixed,
+    addInstallments,
     editFixed,
     deleteFixed,
     restoreFixed,
@@ -296,7 +316,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     importData,
     resetData,
     clearData,
-  }), [transactions, goals, fixedExpenses, isFixedPaid, data.budgets, data.salaries, data.customCategories, categories, currentMonth, getCategory, addTransaction, editTransaction, deleteTransaction, restoreTransaction, addBudget, editBudget, deleteBudget, restoreBudget, copyBudgets, addFixed, editFixed, deleteFixed, restoreFixed, payFixed, addGoal, editGoal, deleteGoal, restoreGoal, contributeToGoal, setBudgetLimit, setSalary, addCustomCategory, deleteCustomCategory, getCurrentMonthData, getExpensesByCategory, getMonthlyHistory, getSalaryForMonth, exportData, importData, resetData, clearData]);
+  }), [transactions, goals, fixedExpenses, isFixedPaid, data.budgets, data.salaries, data.customCategories, categories, currentMonth, getCategory, addTransaction, editTransaction, deleteTransaction, restoreTransaction, addBudget, editBudget, deleteBudget, restoreBudget, copyBudgets, addFixed, addInstallments, editFixed, deleteFixed, restoreFixed, payFixed, addGoal, editGoal, deleteGoal, restoreGoal, contributeToGoal, setBudgetLimit, setSalary, addCustomCategory, deleteCustomCategory, getCurrentMonthData, getExpensesByCategory, getMonthlyHistory, getSalaryForMonth, exportData, importData, resetData, clearData]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 };

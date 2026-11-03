@@ -1,11 +1,13 @@
-import { differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek, format, startOfWeek } from 'date-fns';
-import type { Transaction, Budget, Category } from '../types';
+import { addMonths, differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
+import type { Transaction, Budget, Category, FixedExpense, TransactionType } from '../types';
 import { shiftMonth } from './formatters';
 
 export interface MonthSummary {
   income: number;
   expenses: number;
-  balance: number;
+  balance: number; // this month only
+  carryOver: number; // everything left from earlier months
+  totalBalance: number; // carryOver + balance
   savingsRate: number;
 }
 
@@ -21,6 +23,7 @@ export interface MonthlyHistory {
   income: number;
   expenses: number;
   balance: number;
+  accumulated: number; // total balance at the end of the month
 }
 
 export type BudgetLevel = 'ok' | 'warning' | 'danger' | 'over';
@@ -41,8 +44,15 @@ export const calculateMonthSummary = (transactions: Transaction[], month: string
   const expenses = monthTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   const balance = income - expenses;
   const savingsRate = income > 0 ? ((balance / income) * 100) : 0;
-  return { income, expenses, balance, savingsRate };
+  const carryOver = getCarryOver(transactions, month);
+  return { income, expenses, balance, carryOver, totalBalance: carryOver + balance, savingsRate };
 };
+
+// Balance is cumulative: whatever was not spent in earlier months moves forward
+export const getCarryOver = (transactions: Transaction[], month: string): number =>
+  transactions
+    .filter((t) => t.date < `${month}-01`)
+    .reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
 
 export const getExpensesByCategory = (
   transactions: Transaction[],
@@ -84,8 +94,8 @@ export const getMonthlyHistory = (
   const result: MonthlyHistory[] = [];
   for (let i = numMonths - 1; i >= 0; i--) {
     const month = shiftMonth(endMonth, -i);
-    const { income, expenses, balance } = calculateMonthSummary(transactions, month);
-    result.push({ month, income, expenses, balance });
+    const { income, expenses, balance, totalBalance } = calculateMonthSummary(transactions, month);
+    result.push({ month, income, expenses, balance, accumulated: totalBalance });
   }
   return result;
 };
@@ -140,3 +150,21 @@ export const getTodayPlan = (
     week,
   };
 };
+
+// A fixed expense only counts from the month it was created onwards
+export const isFixedActive = (fixed: FixedExpense, month: string): boolean =>
+  !fixed.startMonth || fixed.startMonth <= month;
+
+// Splits a total into monthly parts in cents, putting the rounding difference on the last one
+export const splitInstallments = (total: number, count: number): number[] => {
+  const cents = Math.round(total * 100);
+  const part = Math.floor(cents / count);
+  return Array.from({ length: count }, (_, i) => (i === count - 1 ? cents - part * (count - 1) : part) / 100);
+};
+
+export const shiftDate = (date: string, months: number): string => {
+  const shifted = addMonths(parseISO(date), months);
+  return format(shifted, 'yyyy-MM-dd');
+};
+
+export const fixedType = (fixed: FixedExpense): TransactionType => fixed.type ?? 'expense';

@@ -2,9 +2,11 @@ import React from 'react';
 import { CalendarClock, Check } from 'lucide-react';
 import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
+import { fixedType, isFixedActive } from '../../utils/calculations';
 
 const FixedOverview: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
-  const { fixedExpenses, isFixedPaid, payFixed, currentMonth } = useFinance();
+  const { fixedExpenses: allFixed, isFixedPaid, payFixed, currentMonth } = useFinance();
+  const fixedExpenses = allFixed.filter((f) => isFixedActive(f, currentMonth) && fixedType(f) === 'expense');
   const { t, money } = usePreferences();
 
   if (fixedExpenses.length === 0) return null;

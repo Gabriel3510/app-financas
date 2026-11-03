@@ -4,7 +4,6 @@ import { useFinance } from '../contexts/finance';
 import { usePreferences } from '../contexts/preferences';
 import type { TranslationKey } from '../i18n/translations';
 import type { Page, TransactionType } from '../types';
-import type { GoalsTab } from './BudgetPage';
 import { getCurrentMonth } from '../utils/formatters';
 import SummaryCards from '../components/Dashboard/SummaryCards';
 import BudgetAlerts from '../components/Dashboard/BudgetAlerts';
@@ -17,7 +16,6 @@ import Fab from '../components/UI/Fab';
 
 interface DashboardPageProps {
   onNavigate: (page: Page) => void;
-  onOpenGoalsTab: (tab: GoalsTab) => void;
   onOpenTransactions: (type: TransactionType) => void;
 }
 
@@ -26,7 +24,7 @@ const greetingKey = (hour: number): TranslationKey => {
   return hour < 19 ? 'greeting.afternoon' : 'greeting.evening';
 };
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpenGoalsTab, onOpenTransactions }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpenTransactions }) => {
   const { t, userName } = usePreferences();
   const { currentMonth } = useFinance();
   const [hour] = useState(() => new Date().getHours());
@@ -54,10 +52,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpenGoalsTa
       <SummaryCards
         onOpenTransactions={onOpenTransactions}
         onOpenCharts={() => onNavigate('charts')}
-        onOpenGoals={() => onOpenGoalsTab('goals')}
+        onOpenGoals={() => onNavigate('goals')}
       />
-      <FixedOverview onOpen={() => onOpenGoalsTab('fixed')} />
-      <BudgetAlerts onOpen={() => onOpenGoalsTab('limits')} />
+      <FixedOverview onOpen={() => onNavigate('fixed')} />
+      <BudgetAlerts onOpen={() => onNavigate('limits')} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="card p-4 md:p-5 min-w-0">
           <div className="flex items-center justify-between mb-4">

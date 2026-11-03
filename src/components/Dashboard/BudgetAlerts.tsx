@@ -4,6 +4,7 @@ import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
 import { getBudgetLevel, getBudgetUsage } from '../../utils/calculations';
 import { BUDGET_LEVEL_STYLES } from '../Budget/budgetStyles';
+import { CategoryBadge } from '../UI/AppIcon';
 
 const BudgetAlerts: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
   const { budgets, transactions, getCategory, currentMonth } = useFinance();
@@ -31,7 +32,7 @@ const BudgetAlerts: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
       <div className="grid gap-2 sm:grid-cols-2">
         {alerts.map(({ budget, spent, pct, level, cat }) => (
           <div key={budget.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 min-w-0">
-            <span className="text-xl">{cat.icon}</span>
+            <CategoryBadge icon={cat.icon} color={cat.color} />
             <div className="flex-1 min-w-0">
               <div className="flex justify-between gap-2 text-sm mb-1">
                 <span className="font-medium truncate">{cat.name}</span>

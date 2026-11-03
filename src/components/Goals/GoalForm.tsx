@@ -5,11 +5,12 @@ import { usePreferences } from '../../contexts/preferences';
 import type { SavingsGoal } from '../../types';
 import { getCurrentMonth, shiftMonth } from '../../utils/formatters';
 import { getMonthlyNeed, getSpendingProfile, monthsUntil, planGoal } from '../../utils/goalPlanner';
+import { AppIcon } from '../UI/AppIcon';
+import { GOAL_ICON_CHOICES } from '../UI/icons';
 import Modal from '../UI/Modal';
 import Select from '../UI/Select';
 import GoalInsight from './GoalInsight';
 
-const ICONS = ['🎯', '🛟', '✈️', '🚗', '🏠', '💻', '🎓', '💍', '👶', '🏖️', '📱', '💰'];
 const DEADLINES = [3, 6, 9, 12, 18, 24, 36, 48, 60];
 
 interface GoalFormProps {
@@ -23,7 +24,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ onClose, editing }) => {
   const { t } = usePreferences();
   const [thisMonth] = useState(getCurrentMonth);
   const [name, setName] = useState(editing?.name || '');
-  const [icon, setIcon] = useState(editing?.icon || '🎯');
+  const [icon, setIcon] = useState(editing?.icon || 'target');
   const [target, setTarget] = useState(editing ? String(editing.target) : '');
   const [saved, setSaved] = useState(editing?.saved ? String(editing.saved) : '');
   const [months, setMonths] = useState(editing?.deadline ? String(monthsUntil(editing.deadline, thisMonth)) : '12');
@@ -67,8 +68,8 @@ const GoalForm: React.FC<GoalFormProps> = ({ onClose, editing }) => {
               label={t('goals.icon')}
               value={icon}
               onChange={setIcon}
-              className="w-20"
-              options={ICONS.map((item) => ({ value: item, label: item }))}
+              className="w-24"
+              options={GOAL_ICON_CHOICES.map((item) => ({ value: item, label: '', icon: <AppIcon icon={item} size={20} className="text-accent" /> }))}
             />
           </label>
         </div>

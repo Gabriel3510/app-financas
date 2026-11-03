@@ -39,13 +39,20 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activePage, onNavigate }) => {
   const { t, isDark, setTheme } = usePreferences();
   const page = NAV_ITEMS.find((item) => item.id === activePage);
-  const showMonthNav = activePage !== 'settings';
+  const showMonthNav = activePage !== 'settings' && activePage !== 'goals';
 
   return (
     <header className="sticky top-0 z-30 bg-hero text-on-hero pt-safe">
-      <div className="flex items-center justify-between gap-2 pl-4 pr-2 md:px-6 py-1.5 md:py-2.5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Logo size={30} className="md:hidden flex-shrink-0" />
+      <div className="flex items-center justify-between gap-2 pl-2 pr-2 md:px-6 py-1.5 md:py-2.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <button
+            data-tour="logo-home"
+            onClick={() => onNavigate('dashboard')}
+            aria-label={t('nav.home')}
+            className="md:hidden p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 flex-shrink-0"
+          >
+            <Logo size={30} />
+          </button>
           <h1 className="text-lg font-bold truncate">{page ? t(page.label) : t('app.name')}</h1>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">

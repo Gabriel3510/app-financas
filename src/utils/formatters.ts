@@ -2,7 +2,7 @@ import { addMonths, format, parseISO } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import type { Currency, Language } from '../types';
 
-const DATE_LOCALES = { 'pt-PT': pt, en: enUS };
+export const DATE_LOCALES = { 'pt-PT': pt, en: enUS };
 
 export const formatCurrency = (value: number, language: Language, currency: Currency): string =>
   new Intl.NumberFormat(language, { style: 'currency', currency }).format(value);

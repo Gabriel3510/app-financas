@@ -2,6 +2,7 @@ import React from 'react';
 import { useFinance } from '../../contexts/finance';
 import { usePreferences } from '../../contexts/preferences';
 import type { Page } from '../../types';
+import { CategoryBadge } from '../UI/AppIcon';
 
 interface RecentTransactionsProps {
   onNavigate: (page: Page) => void;
@@ -31,12 +32,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ onNavigate }) =
             const cat = getCategory(tx.categoryId);
             return (
               <div key={tx.id} className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
-                  style={{ backgroundColor: cat.color + '20' }}
-                >
-                  {cat.icon}
-                </div>
+                <CategoryBadge icon={cat.icon} color={cat.color} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{tx.description}</p>
                   <p className="text-xs text-subtle">{date(tx.date)}</p>

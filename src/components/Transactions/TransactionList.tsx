@@ -4,6 +4,8 @@ import { useFinance } from '../../contexts/finance';
 import { useNotifications } from '../../contexts/notifications';
 import { usePreferences } from '../../contexts/preferences';
 import type { Transaction, TransactionType } from '../../types';
+import { formatCurrency } from '../../utils/formatters';
+import { CategoryBadge } from '../UI/AppIcon';
 import TransactionFilters from './TransactionFilters';
 import TransactionForm from './TransactionForm';
 
@@ -14,7 +16,7 @@ type SortField = 'date' | 'amount';
 const TransactionList: React.FC<{ initialType?: TransactionType | 'all' }> = ({ initialType = 'all' }) => {
   const { transactions, getCategory, deleteTransaction, restoreTransaction, currentMonth } = useFinance();
   const { showToast } = useNotifications();
-  const { t, money, date } = usePreferences();
+  const { t, money, date, language } = usePreferences();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<TransactionType | 'all'>(initialType);
   const [filterCategory, setFilterCategory] = useState('');
@@ -70,7 +72,7 @@ const TransactionList: React.FC<{ initialType?: TransactionType | 'all' }> = ({ 
         filterType={filterType} setFilterType={setFilterType}
         filterCategory={filterCategory} setFilterCategory={setFilterCategory}
       />
-      <div className="card overflow-hidden">
+      <div data-tour="tx-list" className="card overflow-hidden">
         {paginated.length === 0 ? (
           <p className="text-center text-subtle text-sm py-10">{t('tx.empty')}</p>
         ) : (
@@ -85,15 +87,20 @@ const TransactionList: React.FC<{ initialType?: TransactionType | 'all' }> = ({ 
                 const cat = getCategory(tx.categoryId);
                 return (
                   <div key={tx.id} className="flex items-center gap-3 pl-3 pr-1.5 sm:px-4 py-2.5 hover:bg-surface-2 transition-colors">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
-                      style={{ backgroundColor: cat.color + '20' }}
-                    >
-                      {cat.icon}
-                    </div>
+                    <CategoryBadge icon={cat.icon} color={cat.color} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{tx.description}</p>
                       <p className="text-xs text-subtle truncate">{cat.name} · {date(tx.date)}</p>
+                      {(tx.installment || tx.original) && (
+                        <p className="text-xs text-subtle truncate">
+                          {tx.installment && (
+                            <span className="inline-block mr-1.5 px-1.5 rounded bg-primary-soft text-accent font-medium">
+                              {t('tx.installmentLabel', { index: tx.installment.index, total: tx.installment.total })}
+                            </span>
+                          )}
+                          {tx.original && formatCurrency(tx.original.amount, language, tx.original.currency)}
+                        </p>
+                      )}
                       {tx.note && <p className="text-xs text-subtle truncate">{tx.note}</p>}
                     </div>
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-0 sm:gap-3 flex-shrink-0">

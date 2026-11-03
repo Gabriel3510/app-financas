@@ -4,8 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 
-// Offline support for the web install; the native apps already bundle every file
-if (import.meta.env.PROD && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+// Offline support for the web install; the native and desktop apps already bundle every file
+if (import.meta.env.PROD && location.protocol.startsWith('http') && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.register('/sw.js');
 }
 

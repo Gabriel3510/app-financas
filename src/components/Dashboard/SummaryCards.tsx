@@ -20,7 +20,7 @@ interface SummaryCardsProps {
 const SummaryCards: React.FC<SummaryCardsProps> = ({ onOpenTransactions, onOpenCharts, onOpenGoals }) => {
   const { getCurrentMonthData, getSalaryForMonth, currentMonth } = useFinance();
   const { t, money, language } = usePreferences();
-  const { income, expenses, balance, savingsRate } = getCurrentMonthData();
+  const { income, expenses, totalBalance, carryOver, savingsRate } = getCurrentMonthData();
   const salary = getSalaryForMonth(currentMonth);
 
   const cards = [
@@ -28,9 +28,10 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ onOpenTransactions, onOpenC
     { label: t('summary.expenses'), value: money(expenses), icon: <TrendingDown size={18} />, tone: TONES.expense, onClick: () => onOpenTransactions('expense') },
     {
       label: t('summary.balance'),
-      value: money(balance),
+      value: money(totalBalance),
+      sub: carryOver !== 0 ? t('summary.carry', { value: money(carryOver) }) : undefined,
       icon: <Wallet size={18} />,
-      tone: balance >= 0 ? TONES.primary : TONES.expense,
+      tone: totalBalance >= 0 ? TONES.primary : TONES.expense,
       onClick: onOpenCharts,
     },
     {

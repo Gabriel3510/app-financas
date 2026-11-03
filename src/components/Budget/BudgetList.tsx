@@ -7,6 +7,7 @@ import { getBudgetLevel, getBudgetUsage } from '../../utils/calculations';
 import { shiftMonth } from '../../utils/formatters';
 import type { Budget } from '../../types';
 import BudgetForm from './BudgetForm';
+import { CategoryBadge } from '../UI/AppIcon';
 import { BUDGET_LEVEL_STYLES } from './budgetStyles';
 
 const BudgetList: React.FC = () => {
@@ -56,7 +57,7 @@ const BudgetList: React.FC = () => {
             return (
               <div key={b.id} className="card p-4 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">{cat.icon}</span>
+                  <CategoryBadge icon={cat.icon} color={cat.color} />
                   <span className="flex-1 min-w-0 font-medium text-sm truncate">{cat.name}</span>
                   <span className={`text-sm font-semibold ${styles.text}`}>{pct.toFixed(0)}%</span>
                   <div className="flex -mr-2">

@@ -69,17 +69,17 @@ export const getSpendingProfile = (
       .forEach((t) => { byCategory[t.categoryId] = (byCategory[t.categoryId] || 0) + t.amount; });
   });
 
-  // Fixed expenses with no payment in these months are not in the averages yet, so they are added on top
-  const unseenFixed = fixedExpenses
-    .filter((f) => !transactions.some((t) => t.fixedId === f.id && months.some((m) => t.date.startsWith(m))))
-    .reduce((sum, f) => sum + f.amount, 0);
+  // Fixed entries with no payment in these months are not in the averages yet, so they are added on top
+  const unseen = fixedExpenses.filter((f) => !transactions.some((t) => t.fixedId === f.id && months.some((m) => t.date.startsWith(m))));
+  const unseenFixed = unseen.filter((f) => f.type !== 'income').reduce((sum, f) => sum + f.amount, 0);
+  const unseenIncome = unseen.filter((f) => f.type === 'income').reduce((sum, f) => sum + f.amount, 0);
 
   return {
     monthsUsed: months.length,
-    avgIncome: income / count,
+    avgIncome: income / count + unseenIncome,
     avgExpenses: expenses / count + unseenFixed,
-    avgSavings: (income - expenses) / count - unseenFixed,
-    fixedTotal: fixedExpenses.reduce((sum, f) => sum + f.amount, 0),
+    avgSavings: (income - expenses) / count + unseenIncome - unseenFixed,
+    fixedTotal: fixedExpenses.filter((f) => f.type !== 'income').reduce((sum, f) => sum + f.amount, 0),
     categories: Object.entries(byCategory)
       .map(([categoryId, total]) => ({ categoryId, avg: total / count }))
       .sort((a, b) => b.avg - a.avg),

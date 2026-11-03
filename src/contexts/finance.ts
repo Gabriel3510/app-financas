@@ -23,7 +23,8 @@ export interface FinanceContextType {
   deleteBudget: (id: string) => void;
   restoreBudget: (b: Budget) => void;
   copyBudgets: (fromMonth: string, toMonth: string) => void;
-  addFixed: (f: Omit<FixedExpense, 'id'>) => void;
+  addFixed: (f: Omit<FixedExpense, 'id'>) => string;
+  addInstallments: (t: Omit<Transaction, 'id' | 'createdAt'>, count: number) => void;
   editFixed: (id: string, f: Omit<FixedExpense, 'id'>) => void;
   deleteFixed: (id: string) => void;
   restoreFixed: (f: FixedExpense) => void;

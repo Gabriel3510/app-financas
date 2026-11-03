@@ -5,55 +5,65 @@ import { NotificationProvider } from './contexts/NotificationProvider';
 import { usePreferences } from './contexts/preferences';
 import { useNotifications } from './contexts/notifications';
 import Layout from './components/Layout/Layout';
-import Tour from './components/Tutorial/Tour';
+import FirstRunFinish from './components/Tutorial/FirstRunFinish';
 import Onboarding from './components/Tutorial/Onboarding';
+import Tour from './components/Tutorial/Tour';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
+import FixedPage from './pages/FixedPage';
+import GoalsPage from './pages/GoalsPage';
+import LimitsPage from './pages/LimitsPage';
 import ChartsPage from './pages/ChartsPage';
-import BudgetPage from './pages/BudgetPage';
-import type { GoalsTab } from './pages/BudgetPage';
 import SettingsPage from './pages/SettingsPage';
 import type { Page, TransactionType } from './types';
+
+type TutorialStage = 'onboarding' | 'tour' | 'finish' | null;
 
 const Shell: React.FC = () => {
   const { t, tutorialDone, setTutorialDone } = usePreferences();
   const { showToast } = useNotifications();
   const [activePage, setActivePage] = useState<Page>('dashboard');
-  const [goalsTab, setGoalsTab] = useState<GoalsTab>('goals');
   const [transactionFilter, setTransactionFilter] = useState<TransactionType | 'all'>('all');
-  const [tutorial, setTutorial] = useState<'welcome' | 'tour' | null>(tutorialDone ? null : 'welcome');
+  const [stage, setStage] = useState<TutorialStage>(tutorialDone ? null : 'onboarding');
+  // Only the very first run ends by offering to erase the sample data the tour was shown with
+  const [firstRun] = useState(!tutorialDone);
 
   const navigate = useCallback((page: Page) => {
     setActivePage(page);
-    setGoalsTab('goals');
     setTransactionFilter('all');
     window.scrollTo(0, 0);
   }, []);
-
-  const openGoalsTab = useCallback((tab: GoalsTab) => {
-    navigate('budget');
-    setGoalsTab(tab);
-  }, [navigate]);
 
   const openTransactions = useCallback((type: TransactionType) => {
     navigate('transactions');
     setTransactionFilter(type);
   }, [navigate]);
 
-  const finishTour = useCallback(() => {
-    setTutorial(null);
-    setTutorialDone(true);
+  const endTour = useCallback(() => {
     navigate('dashboard');
+    if (firstRun) {
+      setStage('finish');
+      return;
+    }
+    setStage(null);
+    setTutorialDone(true);
     showToast({ kind: 'success', message: t('tour.done') });
-  }, [setTutorialDone, navigate, showToast, t]);
+  }, [firstRun, navigate, setTutorialDone, showToast, t]);
+
+  const endFinish = useCallback(() => {
+    setStage(null);
+    setTutorialDone(true);
+  }, [setTutorialDone]);
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <DashboardPage onNavigate={navigate} onOpenGoalsTab={openGoalsTab} onOpenTransactions={openTransactions} />;
+      case 'dashboard': return <DashboardPage onNavigate={navigate} onOpenTransactions={openTransactions} />;
       case 'transactions': return <TransactionsPage initialType={transactionFilter} />;
+      case 'fixed': return <FixedPage />;
+      case 'goals': return <GoalsPage />;
+      case 'limits': return <LimitsPage />;
       case 'charts': return <ChartsPage />;
-      case 'budget': return <BudgetPage tab={goalsTab} onTabChange={setGoalsTab} />;
-      case 'settings': return <SettingsPage onStartTutorial={() => setTutorial('tour')} />;
+      case 'settings': return <SettingsPage onStartTutorial={() => setStage('tour')} />;
     }
   };
 
@@ -62,8 +72,9 @@ const Shell: React.FC = () => {
       <Layout activePage={activePage} onNavigate={navigate}>
         {renderPage()}
       </Layout>
-      {tutorial === 'welcome' && <Onboarding onDone={() => setTutorial('tour')} />}
-      {tutorial === 'tour' && <Tour activePage={activePage} onNavigate={navigate} onClose={finishTour} />}
+      {stage === 'onboarding' && <Onboarding onDone={() => setStage('tour')} />}
+      {stage === 'tour' && <Tour activePage={activePage} onNavigate={navigate} onClose={endTour} />}
+      {stage === 'finish' && <FirstRunFinish onDone={endFinish} />}
     </>
   );
 };

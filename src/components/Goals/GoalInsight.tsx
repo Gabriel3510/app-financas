@@ -4,6 +4,7 @@ import { useNotifications } from '../../contexts/notifications';
 import { usePreferences } from '../../contexts/preferences';
 import { getCurrentMonth } from '../../utils/formatters';
 import type { CategoryCut, GoalPlan } from '../../utils/goalPlanner';
+import { CategoryBadge } from '../UI/AppIcon';
 
 interface GoalInsightProps {
   plan: GoalPlan;
@@ -49,7 +50,7 @@ const GoalInsight: React.FC<GoalInsightProps> = ({ plan, showActions = true }) =
               const cat = getCategory(item.categoryId);
               return (
                 <li key={item.categoryId} className="flex items-center gap-2">
-                  <span>{cat.icon}</span>
+                  <CategoryBadge icon={cat.icon} color={cat.color} size="sm" />
                   <span className="flex-1 min-w-0 text-xs">
                     <span className="font-medium text-ink">{cat.name}.</span>{' '}
                     {t('goals.cutLine', { avg: money(item.avg), cut: money(item.cut) })}

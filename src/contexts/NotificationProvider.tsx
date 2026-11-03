@@ -3,7 +3,7 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { TIP_COUNT } from '../i18n/translations';
 import type { TranslationKey } from '../i18n/translations';
-import { calculateMonthSummary, getBudgetLevel, getBudgetUsage } from '../utils/calculations';
+import { calculateMonthSummary, getBudgetLevel, getBudgetUsage, fixedType, isFixedActive } from '../utils/calculations';
 import { getCurrentMonth } from '../utils/formatters';
 import Toaster from '../components/UI/Toaster';
 import { useFinance } from './finance';
@@ -68,23 +68,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         kind: 'alert',
         title: t(`${key}.title` as TranslationKey),
         body: t(`${key}.body` as TranslationKey, { category: getCategory(budget.categoryId).name, pct: pct.toFixed(0) }),
-        page: 'budget',
+        page: 'limits',
       });
     });
 
     const summary = calculateMonthSummary(transactions, realMonth);
-    if (summary.balance < 0) {
+    if (summary.totalBalance < 0) {
       items.push({ id: `negative-${realMonth}`, kind: 'alert', ...message('negative'), page: 'dashboard' });
     }
 
     fixedExpenses
-      .filter((f) => f.day >= today.getDate() && f.day - today.getDate() <= 3 && !isFixedPaid(f.id, realMonth))
+      .filter((f) => isFixedActive(f, realMonth) && fixedType(f) === 'expense' && f.day >= today.getDate() && f.day - today.getDate() <= 3 && !isFixedPaid(f.id, realMonth))
       .forEach((f) => items.push({
         id: `fixed-${realMonth}-${f.id}`,
         kind: 'info',
         title: t('notif.fixedDue.title'),
         body: t('notif.fixedDue.body', { name: f.name, day: f.day }),
-        page: 'budget',
+        page: 'fixed',
       }));
 
     if (transactions.some((tx) => tx.sampleKey)) {
@@ -94,7 +94,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       items.push({ id: `no-tx-${realMonth}`, kind: 'info', ...message('noTx'), page: 'transactions' });
     }
     if (monthBudgets.length === 0) {
-      items.push({ id: `no-budget-${realMonth}`, kind: 'info', ...message('noBudget'), page: 'budget' });
+      items.push({ id: `no-budget-${realMonth}`, kind: 'info', ...message('noBudget'), page: 'limits' });
     }
     if (transactions.length > 0 && dayIndex >= 7) {
       items.push({ id: `backup-${realMonth}`, kind: 'info', ...message('backup'), page: 'settings' });

@@ -22,7 +22,7 @@ const ExpensesPieChart: React.FC = () => {
   // Everything past the top slices is grouped, so the percentages always add up to the month's total
   const slices = expenses.slice(0, MAX_SLICES).map((d) => ({
     id: d.categoryId,
-    name: `${d.category.icon} ${d.category.name}`,
+    name: d.category.name,
     value: d.total,
     percentage: d.percentage,
     color: d.category.color,
@@ -31,7 +31,7 @@ const ExpensesPieChart: React.FC = () => {
   if (rest.length > 0) {
     slices.push({
       id: 'rest',
-      name: `📦 ${t('charts.others')}`,
+      name: t('charts.others'),
       value: rest.reduce((sum, d) => sum + d.total, 0),
       percentage: rest.reduce((sum, d) => sum + d.percentage, 0),
       color: '#6B7280',

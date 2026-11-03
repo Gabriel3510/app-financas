@@ -8,6 +8,7 @@ import type { SavingsGoal } from '../../types';
 import { getCurrentMonth } from '../../utils/formatters';
 import { getMonthlyNeed, getSpendingProfile, planGoal } from '../../utils/goalPlanner';
 import type { GoalStatus } from '../../utils/goalPlanner';
+import { AppIcon } from '../UI/AppIcon';
 import Modal from '../UI/Modal';
 import GoalForm from './GoalForm';
 import GoalInsight from './GoalInsight';
@@ -91,7 +92,7 @@ const GoalList: React.FC = () => {
             return (
               <div key={goal.id} className="card p-4 min-w-0 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{goal.icon}</span>
+                  <span className="w-11 h-11 rounded-xl bg-primary-soft text-accent flex items-center justify-center flex-shrink-0"><AppIcon icon={goal.icon} size={22} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{goal.name}</p>
                     <span className={`inline-block mt-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[plan.status]}`}>

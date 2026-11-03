@@ -5,7 +5,7 @@ import type { Page } from '../../types';
 import { TOUR_STEPS } from './tourSteps';
 
 const CARD_WIDTH = 340;
-const CARD_HEIGHT = 230;
+const CARD_HEIGHT = 270;
 const SPOT_PADDING = 6;
 const GUTTER = 16;
 
