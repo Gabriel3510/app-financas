@@ -13,7 +13,8 @@
     "desktop": "npm run build && electron .",
     "desktop:linux": "npm run build && electron-builder --linux",
     "desktop:win": "npm run build && electron-builder --win",
-    "desktop:mac": "npm run build && electron-builder --mac"
+    "desktop:mac": "npm run build && electron-builder --mac",
+    "build:pages": "tsc -b && vite build --base=/app-financas/"
   },
   "devDependencies": {
     "@capacitor/android": "^6.2.3",

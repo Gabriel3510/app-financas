@@ -6,7 +6,7 @@ import './index.css';
 
 // Offline support for the web install; the native and desktop apps already bundle every file
 if (import.meta.env.PROD && location.protocol.startsWith('http') && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
-  void navigator.serviceWorker.register('/sw.js');
+  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

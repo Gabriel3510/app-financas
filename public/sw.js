@@ -13,6 +13,6 @@ self.addEventListener('fetch', (event) => {
         void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((hit) => hit ?? caches.match('/'))),
+      .catch(() => caches.match(event.request).then((hit) => hit ?? caches.match(self.registration.scope))),
   );
 });

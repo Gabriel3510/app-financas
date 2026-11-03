@@ -13,6 +13,7 @@ Todos os dados ficam no próprio dispositivo. O app não tem servidor nem conta 
 - [Requisitos](#requisitos)
 - [Desenvolvimento](#desenvolvimento)
 - [Build para web](#build-para-web)
+- [Publicação no GitHub Pages](#publicação-no-github-pages)
 - [Build para Android](#build-para-android)
 - [Build para iOS](#build-para-ios)
 - [Build para computador](#build-para-computador)
@@ -72,6 +73,7 @@ A aplicação fica disponível em <http://localhost:5173>.
 | --- | --- |
 | `npm run dev` | Inicia o servidor de desenvolvimento |
 | `npm run build` | Valida os tipos e gera a versão de produção em `dist/` |
+| `npm run build:pages` | Gera a versão web para o GitHub Pages, servida em `/app-financas/` |
 | `npm run preview` | Serve localmente o conteúdo de `dist/` |
 | `npm run lint` | Executa o ESLint |
 | `npm run cap:sync` | Gera o build e copia o resultado para os projetos nativos |
@@ -89,9 +91,25 @@ Depois de alterar `tailwind.config.js` com o servidor em execução, reinicie o 
 npm run build
 ```
 
-O conteúdo de `dist/` pode ser publicado em qualquer hospedagem estática com HTTPS, como Vercel, Netlify ou Cloudflare Pages. A aplicação deve ficar na raiz do domínio, pois o manifesto e o service worker usam caminhos absolutos.
+O conteúdo de `dist/` pode ser publicado em qualquer hospedagem estática com HTTPS, como Vercel, Netlify ou Cloudflare Pages. Para servir a aplicação em um subcaminho, gere o build com `vite build --base=/<caminho>/`. O manifesto e o service worker usam caminhos relativos e funcionam em qualquer caminho.
 
 A versão web é instalável como PWA. O service worker prioriza a rede e usa o cache apenas quando não há conexão.
+
+## Publicação no GitHub Pages
+
+O workflow `.github/workflows/pages.yml` publica a versão web a cada push na branch `main`. Para ativá-lo uma única vez, em **Settings → Pages**, selecione **GitHub Actions** em **Source**.
+
+O endereço publicado é <https://gabriel3510.github.io/app-financas/>.
+
+Instalada pelo navegador, a versão web funciona como app e não passa pelo Smart App Control nem pelo SmartScreen do Windows, que bloqueiam executáveis sem assinatura:
+
+| Sistema | Como instalar |
+| --- | --- |
+| Windows, Linux e macOS | Abra o endereço no Edge ou no Chrome e use **Instalar Sobra**, na barra de endereço ou em **⋯ → Aplicativos**. |
+| iPhone | Abra no Safari e use **Compartilhar → Adicionar à Tela de Início**. |
+| Android | Abra no Chrome e use **⋯ → Instalar app**. |
+
+O site é público, mas os dados continuam apenas no dispositivo em que o app foi instalado.
 
 ## Build para Android
 
@@ -171,7 +189,7 @@ Gerado no Linux, o pacote do Windows é um `.zip` portátil: basta extrair e abr
 npm run build && npx electron-builder --win nsis -c.win.signAndEditExecutable=true
 ```
 
-Os pacotes não são assinados. Por isso, o Windows SmartScreen e o Gatekeeper do macOS exibem um aviso na primeira abertura.
+Os pacotes não são assinados. Por isso, o Windows SmartScreen e o Gatekeeper do macOS exibem um aviso na primeira abertura. Com o **Smart App Control** do Windows 11 ativo, o `Sobra.exe` é bloqueado sem opção de execução. Nesse caso, use a versão instalada pelo navegador ou publique o app na Microsoft Store, que assina o pacote.
 
 Os dados ficam na pasta de dados do usuário de cada sistema, como `~/.config/Sobra` no Linux e `%APPDATA%\Sobra` no Windows, e não são compartilhados com o navegador nem com o celular. Para levar dados de um dispositivo a outro, use a exportação e a importação de backup.
 
